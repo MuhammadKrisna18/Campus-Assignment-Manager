@@ -11,15 +11,54 @@ from app.models.user import User
 from app.schemas.auth import RegisterRequest
 from app.schemas.auth import LoginRequest
 from app.schemas.auth import TokenResponse
+from app.schemas.auth import UserResponse
 
 from app.core.security import hash_password
 from app.core.security import verify_password
 from app.core.security import create_access_token
 
+from jose import jwt, JWTError
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.config import settings
+
+security = HTTPBearer()
+
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token"
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token"
+        )
+
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+    return user
 
 
 @router.post("/register")
@@ -99,3 +138,10 @@ def login(
         "access_token": token,
         "token_type": "bearer"
     }
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(
+    current_user: User = Depends(get_current_user)
+):
+    return current_user

@@ -74,3 +74,24 @@ def delete_course(token, course_id):
         },
         timeout=5
     )
+
+
+def get_schedules(token):
+    return requests.get(
+        f"{BASE_URL}/schedules/",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def create_schedule(token, data):
+    return requests.post(
+        f"{BASE_URL}/schedules/",
+        json=data,
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )

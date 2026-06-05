@@ -110,3 +110,10 @@ def render_dashboard():
     ):
         go_to("course")
         st.rerun()
+
+    if st.button(
+        "Kelola Jadwal",
+        use_container_width=True
+    ):
+        go_to("schedule")
+        st.rerun()

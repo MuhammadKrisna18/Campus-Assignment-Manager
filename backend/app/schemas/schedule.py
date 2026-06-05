@@ -21,3 +21,9 @@ class ScheduleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ScheduleUpdate(BaseModel):
+    day: str
+    room: str
+    start_time: time
+    end_time: time

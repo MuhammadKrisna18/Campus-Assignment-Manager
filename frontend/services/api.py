@@ -95,3 +95,32 @@ def create_schedule(token, data):
         },
         timeout=5
     )
+
+def update_course(
+    token,
+    course_id,
+    data
+):
+    return requests.put(
+        f"{BASE_URL}/courses/{course_id}",
+        json=data,
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def update_schedule(
+    token,
+    schedule_id,
+    data
+):
+    return requests.put(
+        f"{BASE_URL}/schedules/{schedule_id}",
+        json=data,
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )

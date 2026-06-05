@@ -12,7 +12,8 @@ from app.models.user import User
 
 from app.schemas.schedule import (
     ScheduleCreate,
-    ScheduleResponse
+    ScheduleResponse,
+    ScheduleUpdate
 )
 
 from app.routers.auth import (
@@ -49,7 +50,7 @@ def create_schedule(
     )
 ):
 
-    # Pastikan course milik user yang login
+    # Pastikan mata kuliah milik user
     course = (
         db.query(Course)
         .filter(
@@ -65,6 +66,54 @@ def create_schedule(
             detail="Course not found"
         )
 
+    # Validasi jam
+    if payload.end_time <= payload.start_time:
+        raise HTTPException(
+            status_code=400,
+            detail="Jam selesai harus setelah jam mulai"
+        )
+
+    # ==========================
+    # VALIDASI BENTROK JADWAL
+    # ==========================
+
+    existing_schedules = (
+        db.query(Schedule)
+        .filter(
+            Schedule.user_id == current_user.id,
+            Schedule.day == payload.day,
+            Schedule.room == payload.room
+        )
+        .all()
+    )
+
+    for existing in existing_schedules:
+
+        overlap = (
+            payload.start_time < existing.end_time
+            and payload.end_time > existing.start_time
+        )
+
+        if overlap:
+
+            existing_course = (
+                db.query(Course)
+                .filter(
+                    Course.id == existing.course_id
+                )
+                .first()
+            )
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Jadwal bentrok dengan "
+                    f"{existing_course.course_name} "
+                    f"({existing.start_time} - "
+                    f"{existing.end_time})"
+                )
+            )
+
     schedule = Schedule(
         user_id=current_user.id,
         course_id=payload.course_id,
@@ -78,8 +127,103 @@ def create_schedule(
     db.commit()
     db.refresh(schedule)
 
-    return _to_response(schedule, course)
+    return _to_response(
+        schedule,
+        course
+    )
 
+@router.put(
+    "/{schedule_id}",
+    response_model=ScheduleResponse
+)
+def update_schedule(
+    schedule_id: int,
+    payload: ScheduleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    schedule = (
+        db.query(Schedule)
+        .filter(
+            Schedule.id == schedule_id,
+            Schedule.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not schedule:
+        raise HTTPException(
+            status_code=404,
+            detail="Schedule not found"
+        )
+
+    if payload.end_time <= payload.start_time:
+        raise HTTPException(
+            status_code=400,
+            detail="Jam selesai harus setelah jam mulai"
+        )
+
+    existing_schedules = (
+        db.query(Schedule)
+        .filter(
+            Schedule.user_id == current_user.id,
+            Schedule.day == payload.day,
+            Schedule.room == payload.room,
+            Schedule.id != schedule_id
+        )
+        .all()
+    )
+
+    for existing in existing_schedules:
+
+        overlap = (
+            payload.start_time < existing.end_time
+            and payload.end_time > existing.start_time
+        )
+
+        if overlap:
+
+            existing_course = (
+                db.query(Course)
+                .filter(
+                    Course.id == existing.course_id
+                )
+                .first()
+            )
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Jadwal bentrok dengan "
+                    f"{existing_course.course_name} "
+                    f"({existing.start_time} - "
+                    f"{existing.end_time})"
+                )
+            )
+
+    schedule.day = payload.day
+    schedule.room = payload.room
+    schedule.start_time = payload.start_time
+    schedule.end_time = payload.end_time
+
+    db.commit()
+    db.refresh(schedule)
+
+    course = (
+        db.query(Course)
+        .filter(
+            Course.id == schedule.course_id
+        )
+        .first()
+    )
+
+    return _to_response(
+        schedule,
+        course
+    )
 
 @router.get(
     "/",

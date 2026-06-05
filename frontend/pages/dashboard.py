@@ -1,7 +1,11 @@
 import streamlit as st
 
 from utils.auth import logout, go_to
-from services.api import get_courses
+
+from services.api import (
+    get_courses,
+    get_schedules
+)
 
 
 def render_dashboard():
@@ -12,6 +16,7 @@ def render_dashboard():
     col_info, col_logout = st.columns([4, 1])
 
     with col_info:
+
         st.write(
             f"**{user['full_name']}** | {user['email']}"
         )
@@ -21,7 +26,9 @@ def render_dashboard():
         )
 
     with col_logout:
+
         if st.button("Logout"):
+
             logout()
             st.rerun()
 
@@ -37,28 +44,28 @@ def render_dashboard():
         """
         Selamat datang di Campus Assignment Manager.
 
-        Sistem ini akan membantu mahasiswa dalam mengelola
-        tugas, deadline, dan aktivitas akademik lainnya.
+        Sistem ini membantu mahasiswa mengelola
+        mata kuliah dan jadwal perkuliahan.
         """
     )
 
     st.divider()
 
     # ======================
-    # DAFTAR MATA KULIAH
+    # MATA KULIAH
     # ======================
 
     st.subheader(
-        "Mata Kuliah Saya"
+        "📚 Mata Kuliah Saya"
     )
 
-    response = get_courses(
+    course_response = get_courses(
         token
     )
 
-    if response.status_code == 200:
+    if course_response.status_code == 200:
 
-        courses = response.json()
+        courses = course_response.json()
 
         if len(courses) == 0:
 
@@ -90,6 +97,7 @@ def render_dashboard():
                         f"📚 SKS : {course['credits']}"
                     )
 
+
     else:
 
         st.error(
@@ -98,16 +106,79 @@ def render_dashboard():
 
     st.divider()
 
-    if st.button(
-        "Kelola Mata Kuliah",
-        use_container_width=True
-    ):
-        go_to("course")
-        st.rerun()
+    # ======================
+    # JADWAL
+    # ======================
 
-    if st.button(
-        "Kelola Jadwal",
-        use_container_width=True
-    ):
-        go_to("schedule")
-        st.rerun()
+    st.subheader(
+        "🗓️ Jadwal Saya"
+    )
+
+    schedule_response = get_schedules(
+        token
+    )
+
+    if schedule_response.status_code == 200:
+
+        schedules = schedule_response.json()
+
+        if len(schedules) == 0:
+
+            st.info(
+                "Belum ada jadwal."
+            )
+
+        else:
+
+            for schedule in schedules:
+
+                with st.container(
+                    border=True
+                ):
+
+                    st.markdown(
+                        f"### {schedule['course_name']}"
+                    )
+
+                    st.write(
+                        f"📅 Hari : {schedule['day']}"
+                    )
+
+                    st.write(
+                        f"🏫 Ruang : {schedule['room']}"
+                    )
+
+                    st.write(
+                        f"⏰ {schedule['start_time']} - "
+                        f"{schedule['end_time']}"
+                    )
+
+    else:
+
+        st.error(
+            "Gagal memuat jadwal."
+        )
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button(
+            "Kelola Mata Kuliah",
+            use_container_width=True
+        ):
+
+            go_to("course")
+            st.rerun()
+
+    with col2:
+
+        if st.button(
+            "Kelola Jadwal",
+            use_container_width=True
+        ):
+
+            go_to("schedule")
+            st.rerun()

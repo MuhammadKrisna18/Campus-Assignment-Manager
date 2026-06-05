@@ -17,3 +17,9 @@ class CourseResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CourseUpdate(BaseModel):
+    course_name: str
+    credits: int
+    class_name: str
+    lecturer_name: str

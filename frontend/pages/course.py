@@ -100,6 +100,89 @@ def render_course():
 
                         st.rerun()
 
+                # --- Form edit mata kuliah ---
+                with st.expander("Edit"):
+
+                    edit_name = st.text_input(
+                        "Nama Mata Kuliah",
+                        value=course["course_name"],
+                        key=f"edit_name_{course['id']}"
+                    )
+
+                    edit_lecturer = st.text_input(
+                        "Nama Dosen",
+                        value=course["lecturer_name"],
+                        key=f"edit_lecturer_{course['id']}"
+                    )
+
+                    edit_class = st.text_input(
+                        "Kelas",
+                        value=course["class_name"],
+                        key=f"edit_class_{course['id']}"
+                    )
+
+                    edit_credits = st.number_input(
+                        "SKS",
+                        min_value=1,
+                        step=1,
+                        value=int(course["credits"]),
+                        key=f"edit_credits_{course['id']}"
+                    )
+
+                    if st.button(
+                        "Simpan Perubahan",
+                        key=f"save_{course['id']}"
+                    ):
+
+                        if (
+                            not edit_name
+                            or not edit_lecturer
+                            or not edit_class
+                        ):
+
+                            st.error(
+                                "Semua field harus diisi."
+                            )
+
+                        else:
+
+                            update_resp = update_course(
+                                token,
+                                course["id"],
+                                {
+                                    "course_name": edit_name,
+                                    "credits": int(edit_credits),
+                                    "class_name": edit_class,
+                                    "lecturer_name": edit_lecturer,
+                                }
+                            )
+
+                            if update_resp.status_code == 200:
+
+                                st.session_state.course_flash = (
+                                    "Mata kuliah diperbarui."
+                                )
+
+                                st.rerun()
+
+                            else:
+
+                                try:
+                                    detail = (
+                                        update_resp
+                                        .json()
+                                        .get(
+                                            "detail",
+                                            "Gagal memperbarui mata kuliah."
+                                        )
+                                    )
+                                except Exception:
+                                    detail = (
+                                        "Gagal memperbarui mata kuliah."
+                                    )
+
+                                st.error(detail)
+
     st.divider()
 
     st.subheader(

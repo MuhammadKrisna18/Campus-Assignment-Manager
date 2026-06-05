@@ -1,12 +1,33 @@
 import streamlit as st
 
+from datetime import time
+
 from services.api import (
     get_schedules,
     create_schedule,
     get_courses,
+    update_schedule,
 )
 
 from utils.auth import go_to
+
+
+DAYS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+]
+
+
+def _parse_time(value):
+    """Ubah string 'HH:MM:SS' dari API menjadi objek time."""
+    try:
+        parts = [int(p) for p in str(value).split(":")]
+        return time(parts[0], parts[1])
+    except Exception:
+        return time(7, 0)
 
 
 def render_schedule():
@@ -77,6 +98,104 @@ def render_schedule():
                     f"{schedule['end_time']}"
                 )
 
+                # --- Form edit jadwal ---
+                with st.expander("Edit"):
+
+                    day_index = (
+                        DAYS.index(schedule["day"])
+                        if schedule["day"] in DAYS
+                        else 0
+                    )
+
+                    edit_day = st.selectbox(
+                        "Day",
+                        DAYS,
+                        index=day_index,
+                        key=f"edit_day_{schedule['id']}"
+                    )
+
+                    edit_room = st.text_input(
+                        "Room",
+                        value=schedule["room"],
+                        key=f"edit_room_{schedule['id']}"
+                    )
+
+                    edit_start = st.time_input(
+                        "Start Time",
+                        value=_parse_time(
+                            schedule["start_time"]
+                        ),
+                        key=f"edit_start_{schedule['id']}"
+                    )
+
+                    edit_end = st.time_input(
+                        "End Time",
+                        value=_parse_time(
+                            schedule["end_time"]
+                        ),
+                        key=f"edit_end_{schedule['id']}"
+                    )
+
+                    if st.button(
+                        "Simpan Perubahan",
+                        key=f"save_{schedule['id']}"
+                    ):
+
+                        if not edit_room:
+
+                            st.error(
+                                "Room harus diisi."
+                            )
+
+                        elif edit_end <= edit_start:
+
+                            st.error(
+                                "Jam selesai harus setelah jam mulai."
+                            )
+
+                        else:
+
+                            update_resp = update_schedule(
+                                token,
+                                schedule["id"],
+                                {
+                                    "day": edit_day,
+                                    "room": edit_room,
+                                    "start_time": edit_start.strftime(
+                                        "%H:%M:%S"
+                                    ),
+                                    "end_time": edit_end.strftime(
+                                        "%H:%M:%S"
+                                    ),
+                                }
+                            )
+
+                            if update_resp.status_code == 200:
+
+                                st.session_state.schedule_flash = (
+                                    "Jadwal diperbarui."
+                                )
+
+                                st.rerun()
+
+                            else:
+
+                                try:
+                                    detail = (
+                                        update_resp
+                                        .json()
+                                        .get(
+                                            "detail",
+                                            "Gagal memperbarui jadwal."
+                                        )
+                                    )
+                                except Exception:
+                                    detail = (
+                                        "Gagal memperbarui jadwal."
+                                    )
+
+                                st.error(detail)
+
     st.divider()
 
     st.subheader(
@@ -112,13 +231,7 @@ def render_schedule():
 
     day = st.selectbox(
         "Day",
-        [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday"
-        ]
+        DAYS
     )
 
     room = st.text_input(

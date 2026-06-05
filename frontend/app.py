@@ -15,6 +15,7 @@ from pages.register import render_register
 from pages.dashboard import render_dashboard
 from pages.course import render_course
 from pages.schedule import render_schedule
+from pages.assignment import render_assignment
 
 st.set_page_config(
     page_title="Campus Assignment Manager",
@@ -75,6 +76,8 @@ if is_logged_in():
         render_course()
     elif st.session_state.page == "schedule":
         render_schedule()
+    elif st.session_state.page == "assignment":
+        render_assignment()
     else:
         render_dashboard()
 

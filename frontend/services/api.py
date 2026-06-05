@@ -124,3 +124,44 @@ def update_schedule(
         },
         timeout=5
     )
+
+
+def get_assignments(token):
+    return requests.get(
+        f"{BASE_URL}/assignments/",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def create_assignment(token, data):
+    return requests.post(
+        f"{BASE_URL}/assignments/",
+        json=data,
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def complete_assignment(token, assignment_id):
+    return requests.patch(
+        f"{BASE_URL}/assignments/{assignment_id}/complete",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def delete_assignment(token, assignment_id):
+    return requests.delete(
+        f"{BASE_URL}/assignments/{assignment_id}",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )

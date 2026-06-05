@@ -161,7 +161,7 @@ def render_dashboard():
 
     st.divider()
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
 
@@ -181,4 +181,14 @@ def render_dashboard():
         ):
 
             go_to("schedule")
+            st.rerun()
+
+    with col3:
+
+        if st.button(
+            "Kelola Tugas",
+            use_container_width=True
+        ):
+
+            go_to("assignment")
             st.rerun()

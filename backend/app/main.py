@@ -12,6 +12,9 @@ from app.routers.course import (router as course_router)
 from app.models.schedule import Schedule
 from app.routers.schedule import (router as schedule_router)
 
+from app.models.assignment import Assignment
+from app.routers.assignment import (router as assignment_router)
+
 # Membuat tabel users jika belum ada
 Base.metadata.create_all(bind=engine)
 
@@ -32,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(course_router)
 app.include_router(schedule_router)
+app.include_router(assignment_router)
 
 @app.get("/")
 def root():

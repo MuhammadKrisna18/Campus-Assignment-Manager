@@ -5,20 +5,27 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-
 from app.models.user import User
 
-from app.schemas.auth import RegisterRequest
-from app.schemas.auth import LoginRequest
-from app.schemas.auth import TokenResponse
-from app.schemas.auth import UserResponse
+from app.schemas.auth import (
+    RegisterRequest,
+    LoginRequest,
+    LoginResponse,
+    UserResponse
+)
 
-from app.core.security import hash_password
-from app.core.security import verify_password
-from app.core.security import create_access_token
+from app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token
+)
 
 from jose import jwt, JWTError
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials
+)
+
 from app.core.config import settings
 
 security = HTTPBearer()
@@ -34,30 +41,42 @@ def get_current_user(
     db: Session = Depends(get_db)
 ):
     token = credentials.credentials
+
     try:
+
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM]
         )
+
         user_id = payload.get("sub")
+
         if user_id is None:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token"
             )
+
     except JWTError:
+
         raise HTTPException(
             status_code=401,
             detail="Invalid token"
         )
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    user = (
+        db.query(User)
+        .filter(User.id == int(user_id))
+        .first()
+    )
+
     if user is None:
         raise HTTPException(
             status_code=401,
             detail="User not found"
         )
+
     return user
 
 
@@ -74,6 +93,7 @@ def register(
     )
 
     if existing_user:
+
         raise HTTPException(
             status_code=400,
             detail="Email already exists"
@@ -99,7 +119,7 @@ def register(
 
 @router.post(
     "/login",
-    response_model=TokenResponse
+    response_model=LoginResponse
 )
 def login(
     payload: LoginRequest,
@@ -113,6 +133,7 @@ def login(
     )
 
     if not user:
+
         raise HTTPException(
             status_code=401,
             detail="Invalid credentials"
@@ -122,6 +143,7 @@ def login(
         payload.password,
         user.password_hash
     ):
+
         raise HTTPException(
             status_code=401,
             detail="Invalid credentials"
@@ -136,11 +158,15 @@ def login(
 
     return {
         "access_token": token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user": user
     }
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse
+)
 def get_me(
     current_user: User = Depends(get_current_user)
 ):

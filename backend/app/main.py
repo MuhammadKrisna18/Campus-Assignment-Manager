@@ -6,13 +6,14 @@ from app.models.user import User
 
 from app.routers.auth import router as auth_router
 
-# Membuat seluruh tabel yang terdaftar pada model
+# Membuat tabel users jika belum ada
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Campus Assignment Manager"
 )
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,6 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Router
 app.include_router(auth_router)
 
 @app.get("/")

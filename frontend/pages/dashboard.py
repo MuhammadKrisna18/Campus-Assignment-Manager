@@ -7,25 +7,31 @@ def render_dashboard():
     user = st.session_state.user
 
     col_info, col_logout = st.columns([4, 1])
+
     with col_info:
-        st.write(f"**{user['full_name']}**  |  {user['email']}")
-        st.caption(f"Role: {user['role']}")
+        st.write(
+            f"**{user['full_name']}** | {user['email']}"
+        )
+        st.caption(
+            f"Role: {user['role']}"
+        )
+
     with col_logout:
         if st.button("Logout"):
             logout()
             st.rerun()
 
     st.title("Dashboard")
-    st.write(f"Selamat datang, {user['full_name']}!")
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Mata Kuliah", "0")
-    col2.metric("Tugas Aktif", "0")
-    col3.metric("Tugas Selesai", "0")
-    col4.metric("IPK", "-")
+    st.success(
+        f"Selamat datang, {user['full_name']}!"
+    )
 
-    st.subheader("Tugas Mendatang")
-    st.info("Belum ada tugas.")
+    st.write(
+        """
+        Selamat datang di Campus Assignment Manager.
 
-    st.subheader("Jadwal Hari Ini")
-    st.info("Belum ada jadwal.")
+        Sistem ini akan membantu mahasiswa dalam mengelola
+        tugas, deadline, dan aktivitas akademik lainnya.
+        """
+    )

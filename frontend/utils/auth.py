@@ -16,21 +16,14 @@ def init_session():
     if "flash" not in st.session_state:
         st.session_state.flash = None
 
-    # Restore token setelah refresh browser
-    if (
-        st.session_state.token is None
-        and "token" in st.query_params
-    ):
-        st.session_state.token = st.query_params["token"]
-
 
 def set_flash(message):
-    """Simpan pesan sementara."""
+    """Simpan flash message."""
     st.session_state.flash = message
 
 
 def pop_flash():
-    """Ambil lalu hapus flash message."""
+    """Ambil dan hapus flash message."""
     message = st.session_state.get("flash")
     st.session_state.flash = None
     return message
@@ -43,9 +36,6 @@ def login(token, user):
     st.session_state.user = user
     st.session_state.page = "dashboard"
 
-    # Simpan token ke URL agar tidak hilang saat refresh
-    st.query_params["token"] = token
-
 
 def logout():
     """Logout user."""
@@ -53,9 +43,6 @@ def logout():
     st.session_state.token = None
     st.session_state.user = None
     st.session_state.page = "login"
-
-    # Hapus query params
-    st.query_params.clear()
 
 
 def is_logged_in():
@@ -68,6 +55,6 @@ def is_logged_in():
 
 
 def go_to(page):
-    """Pindah halaman."""
+    """Navigasi halaman."""
 
     st.session_state.page = page

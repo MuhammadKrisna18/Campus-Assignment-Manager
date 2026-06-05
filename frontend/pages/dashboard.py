@@ -1,10 +1,13 @@
 import streamlit as st
 
 from utils.auth import logout, go_to
+from services.api import get_courses
 
 
 def render_dashboard():
+
     user = st.session_state.user
+    token = st.session_state.token
 
     col_info, col_logout = st.columns([4, 1])
 
@@ -12,6 +15,7 @@ def render_dashboard():
         st.write(
             f"**{user['full_name']}** | {user['email']}"
         )
+
         st.caption(
             f"Role: {user['role']}"
         )
@@ -21,7 +25,9 @@ def render_dashboard():
             logout()
             st.rerun()
 
-    st.title("Dashboard")
+    st.title(
+        "Dashboard"
+    )
 
     st.success(
         f"Selamat datang, {user['full_name']}!"
@@ -38,7 +44,69 @@ def render_dashboard():
 
     st.divider()
 
-    st.subheader("Menu")
-    if st.button("Mata Kuliah"):
+    # ======================
+    # DAFTAR MATA KULIAH
+    # ======================
+
+    st.subheader(
+        "Mata Kuliah Saya"
+    )
+
+    response = get_courses(
+        token
+    )
+
+    if response.status_code == 200:
+
+        courses = response.json()
+
+        if len(courses) == 0:
+
+            st.info(
+                "Belum ada mata kuliah."
+            )
+
+        else:
+
+            for course in courses:
+
+                with st.container(
+                    border=True
+                ):
+
+                    st.markdown(
+                        f"### {course['course_name']}"
+                    )
+
+                    st.write(
+                        f"👨‍🏫 Dosen : {course['lecturer_name']}"
+                    )
+
+                    st.write(
+                        f"🏫 Kelas : {course['class_name']}"
+                    )
+
+                    st.write(
+                        f"📚 SKS : {course['credits']}"
+                    )
+
+                    st.caption(
+                        f"{course['day']} | "
+                        f"{course['schedule_date']} | "
+                        f"{course['schedule_time']}"
+                    )
+
+    else:
+
+        st.error(
+            "Gagal memuat mata kuliah."
+        )
+
+    st.divider()
+
+    if st.button(
+        "Kelola Mata Kuliah",
+        use_container_width=True
+    ):
         go_to("course")
         st.rerun()

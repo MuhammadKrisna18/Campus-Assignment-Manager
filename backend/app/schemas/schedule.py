@@ -3,7 +3,7 @@ from datetime import time
 
 
 class ScheduleCreate(BaseModel):
-    subject: str
+    course_id: int
     day: str
     room: str
     start_time: time
@@ -12,7 +12,8 @@ class ScheduleCreate(BaseModel):
 
 class ScheduleResponse(BaseModel):
     id: int
-    subject: str
+    course_id: int
+    course_name: str
     day: str
     room: str
     start_time: time

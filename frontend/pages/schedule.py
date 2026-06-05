@@ -3,6 +3,7 @@ import streamlit as st
 from services.api import (
     get_schedules,
     create_schedule,
+    get_courses,
 )
 from utils.auth import go_to
 
@@ -40,7 +41,7 @@ def render_schedule():
     else:
         for schedule in schedules:
             with st.container(border=True):
-                st.markdown(f"**{schedule['subject']}**")
+                st.markdown(f"**{schedule['course_name']}**")
                 st.write(
                     f"Hari: {schedule['day']} | "
                     f"Ruang: {schedule['room']}"
@@ -55,7 +56,24 @@ def render_schedule():
     # --- Tambah jadwal ---
     st.subheader("Tambah Jadwal")
 
-    subject = st.text_input("Subject")
+    # Ambil daftar mata kuliah untuk dipilih
+    course_resp = get_courses(token)
+    courses = course_resp.json() if course_resp.status_code == 200 else []
+
+    if not courses:
+        st.warning(
+            "Tambahkan mata kuliah terlebih dahulu "
+            "sebelum membuat jadwal."
+        )
+        return
+
+    # Mapping nama -> id agar dropdown menampilkan nama mata kuliah
+    course_options = {c["course_name"]: c["id"] for c in courses}
+
+    selected_course = st.selectbox(
+        "Mata Kuliah",
+        list(course_options.keys()),
+    )
     day = st.selectbox(
         "Day",
         ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
@@ -65,13 +83,13 @@ def render_schedule():
     end_time = st.time_input("End Time")
 
     if st.button("Add Schedule", type="primary"):
-        if not subject or not room:
-            st.error("Subject dan Room harus diisi.")
+        if not room:
+            st.error("Room harus diisi.")
         elif end_time <= start_time:
             st.error("Jam selesai harus setelah jam mulai.")
         else:
             data = {
-                "subject": subject,
+                "course_id": course_options[selected_course],
                 "day": day,
                 "room": room,
                 "start_time": start_time.strftime("%H:%M:%S"),

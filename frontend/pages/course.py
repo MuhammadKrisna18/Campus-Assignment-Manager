@@ -8,17 +8,6 @@ from services.api import (
 from utils.auth import go_to
 
 
-DAYS = [
-    "Senin",
-    "Selasa",
-    "Rabu",
-    "Kamis",
-    "Jumat",
-    "Sabtu",
-    "Minggu",
-]
-
-
 def render_course():
     token = st.session_state.token
 
@@ -61,11 +50,6 @@ def render_course():
                         f"Kelas: {course['class_name']} | "
                         f"SKS: {course['credits']}"
                     )
-                    st.caption(
-                        f"{course['day']}, "
-                        f"{course['schedule_date']} "
-                        f"jam {course['schedule_time']}"
-                    )
 
                 with col_action:
                     if st.button(
@@ -94,9 +78,6 @@ def render_course():
     lecturer_name = st.text_input("Nama Dosen")
     class_name = st.text_input("Kelas")
     credits = st.number_input("SKS", min_value=1, step=1)
-    day = st.selectbox("Hari", DAYS)
-    schedule_date = st.date_input("Tanggal")
-    schedule_time = st.time_input("Jam")
 
     if st.button("Tambah", type="primary"):
         if not course_name or not lecturer_name or not class_name:
@@ -107,9 +88,6 @@ def render_course():
                 "credits": int(credits),
                 "class_name": class_name,
                 "lecturer_name": lecturer_name,
-                "day": day,
-                "schedule_date": schedule_date.isoformat(),
-                "schedule_time": schedule_time.strftime("%H:%M:%S"),
             }
 
             create_resp = create_course(token, data)

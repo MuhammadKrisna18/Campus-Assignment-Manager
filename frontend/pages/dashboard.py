@@ -90,12 +90,6 @@ def render_dashboard():
                         f"📚 SKS : {course['credits']}"
                     )
 
-                    st.caption(
-                        f"{course['day']} | "
-                        f"{course['schedule_date']} | "
-                        f"{course['schedule_time']}"
-                    )
-
     else:
 
         st.error(

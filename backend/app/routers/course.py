@@ -41,10 +41,7 @@ def create_course(
         course_name=payload.course_name,
         credits=payload.credits,
         class_name=payload.class_name,
-        lecturer_name=payload.lecturer_name,
-        day=payload.day,
-        schedule_date=payload.schedule_date,
-        schedule_time=payload.schedule_time
+        lecturer_name=payload.lecturer_name
     )
 
     db.add(course)

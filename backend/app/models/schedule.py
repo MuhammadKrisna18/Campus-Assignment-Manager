@@ -22,8 +22,9 @@ class Schedule(Base):
         nullable=False
     )
 
-    subject = Column(
-        String,
+    course_id = Column(
+        Integer,
+        ForeignKey("courses.id"),
         nullable=False
     )
 

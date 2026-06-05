@@ -1,12 +1,15 @@
 import streamlit as st
 
 from services.api import (
-    get_courses,
+    fetch_courses,
     create_course,
     delete_course,
-    update_course
+    update_course,
 )
 from utils.auth import go_to
+
+
+GRADES = ["A", "AB", "B", "BC", "C", "D", "E"]
 
 
 def render_course():
@@ -34,15 +37,13 @@ def render_course():
         "Daftar Mata Kuliah"
     )
 
-    response = get_courses(token)
-
-    if response.status_code != 200:
+    try:
+        courses = fetch_courses(token)
+    except Exception:
         st.error(
             "Gagal memuat data mata kuliah."
         )
         return
-
-    courses = response.json()
 
     if not courses:
 
@@ -71,7 +72,8 @@ def render_course():
                     st.write(
                         f"Dosen: {course['lecturer_name']} | "
                         f"Kelas: {course['class_name']} | "
-                        f"SKS: {course['credits']}"
+                        f"SKS: {course['credits']} | "
+                        f"Grade: {course.get('grade') or '-'}"
                     )
 
                 with col_action:
@@ -103,36 +105,52 @@ def render_course():
                 # --- Form edit mata kuliah ---
                 with st.expander("Edit"):
 
-                    edit_name = st.text_input(
-                        "Nama Mata Kuliah",
-                        value=course["course_name"],
-                        key=f"edit_name_{course['id']}"
-                    )
-
-                    edit_lecturer = st.text_input(
-                        "Nama Dosen",
-                        value=course["lecturer_name"],
-                        key=f"edit_lecturer_{course['id']}"
-                    )
-
-                    edit_class = st.text_input(
-                        "Kelas",
-                        value=course["class_name"],
-                        key=f"edit_class_{course['id']}"
-                    )
-
-                    edit_credits = st.number_input(
-                        "SKS",
-                        min_value=1,
-                        step=1,
-                        value=int(course["credits"]),
-                        key=f"edit_credits_{course['id']}"
-                    )
-
-                    if st.button(
-                        "Simpan Perubahan",
-                        key=f"save_{course['id']}"
+                    with st.form(
+                        key=f"edit_form_{course['id']}"
                     ):
+
+                        edit_name = st.text_input(
+                            "Nama Mata Kuliah",
+                            value=course["course_name"],
+                            key=f"edit_name_{course['id']}"
+                        )
+
+                        edit_lecturer = st.text_input(
+                            "Nama Dosen",
+                            value=course["lecturer_name"],
+                            key=f"edit_lecturer_{course['id']}"
+                        )
+
+                        edit_class = st.text_input(
+                            "Kelas",
+                            value=course["class_name"],
+                            key=f"edit_class_{course['id']}"
+                        )
+
+                        edit_credits = st.number_input(
+                            "SKS",
+                            min_value=1,
+                            step=1,
+                            value=int(course["credits"]),
+                            key=f"edit_credits_{course['id']}"
+                        )
+
+                        edit_grade = st.selectbox(
+                            "Grade",
+                            ["(Belum dinilai)"] + GRADES,
+                            index=(
+                                GRADES.index(course["grade"]) + 1
+                                if course.get("grade") in GRADES
+                                else 0
+                            ),
+                            key=f"edit_grade_{course['id']}"
+                        )
+
+                        save_edit = st.form_submit_button(
+                            "Simpan Perubahan"
+                        )
+
+                    if save_edit:
 
                         if (
                             not edit_name
@@ -154,6 +172,11 @@ def render_course():
                                     "credits": int(edit_credits),
                                     "class_name": edit_class,
                                     "lecturer_name": edit_lecturer,
+                                    "grade": (
+                                        edit_grade
+                                        if edit_grade in GRADES
+                                        else None
+                                    ),
                                 }
                             )
 
@@ -189,28 +212,37 @@ def render_course():
         "Tambah Mata Kuliah"
     )
 
-    course_name = st.text_input(
-        "Nama Mata Kuliah"
-    )
+    with st.form(key="add_course_form"):
 
-    lecturer_name = st.text_input(
-        "Nama Dosen"
-    )
+        course_name = st.text_input(
+            "Nama Mata Kuliah"
+        )
 
-    class_name = st.text_input(
-        "Kelas"
-    )
+        lecturer_name = st.text_input(
+            "Nama Dosen"
+        )
 
-    credits = st.number_input(
-        "SKS",
-        min_value=1,
-        step=1
-    )
+        class_name = st.text_input(
+            "Kelas"
+        )
 
-    if st.button(
-        "Tambah",
-        type="primary"
-    ):
+        credits = st.number_input(
+            "SKS",
+            min_value=1,
+            step=1
+        )
+
+        grade = st.selectbox(
+            "Grade",
+            ["(Belum dinilai)"] + GRADES
+        )
+
+        submit_add = st.form_submit_button(
+            "Tambah",
+            type="primary"
+        )
+
+    if submit_add:
 
         if (
             not course_name
@@ -229,6 +261,7 @@ def render_course():
                 "credits": int(credits),
                 "class_name": class_name,
                 "lecturer_name": lecturer_name,
+                "grade": grade if grade in GRADES else None
             }
 
             create_resp = create_course(

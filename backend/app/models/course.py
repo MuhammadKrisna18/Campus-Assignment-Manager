@@ -40,3 +40,8 @@ class Course(Base):
         String,
         nullable=False
     )
+    
+    grade = Column(
+        String,
+        nullable=True
+    )

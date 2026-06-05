@@ -3,7 +3,8 @@ import streamlit as st
 from utils.auth import (
     init_session,
     is_logged_in,
-    login
+    login,
+    get_token_from_cookie,
 )
 
 from services.api import (
@@ -42,33 +43,34 @@ st.markdown(
 
 init_session()
 
-# Restore user setelah refresh browser
-if (
-    st.session_state.token
-    and st.session_state.user is None
-):
-    try:
+# Restore sesi setelah refresh browser.
+# Token tersimpan di cookie (per-browser), jadi setelah refresh kita
+# baca token dari cookie lalu ambil ulang data user lewat /auth/me.
+if not is_logged_in():
 
-        response = get_current_user(
-            st.session_state.token
-        )
+    cookie_token = get_token_from_cookie()
 
-        if response.status_code == 200:
+    if cookie_token:
 
-            login(
-                st.session_state.token,
-                response.json()
-            )
+        try:
 
-        else:
+            response = get_current_user(cookie_token)
+
+            if response.status_code == 200:
+
+                login(
+                    cookie_token,
+                    response.json()
+                )
+
+            else:
+
+                # Token tidak valid/kedaluwarsa -> abaikan.
+                st.session_state.token = None
+
+        except Exception:
 
             st.session_state.token = None
-            st.query_params.clear()
-
-    except Exception:
-
-        st.session_state.token = None
-        st.query_params.clear()
 
 # Routing
 if is_logged_in():

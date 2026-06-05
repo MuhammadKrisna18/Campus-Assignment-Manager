@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from utils.auth import go_to
+from services.api import fetch_courses, update_course
 
 
 GRADES = ["A", "AB", "B", "BC", "C", "D", "E"]
@@ -30,76 +31,109 @@ def render_gpa_tracker():
             st.rerun()
 
     # Flash message setelah aksi
-    flash = st.session_state.pop(
-        "gpa_flash",
-        None
-    )
+    flash = st.session_state.pop("gpa_flash", None)
     if flash:
         st.success(flash)
 
-    st.subheader("Tambah Nilai")
+    # Ambil data mata kuliah dari backend
+    try:
+        courses = fetch_courses(token)
+    except Exception:
+        st.error("Gagal memuat data mata kuliah.")
+        return
 
-    col1, col2, col3 = st.columns(3)
+    # --- Beri / Ubah Nilai Mata Kuliah ---
+    st.subheader("Beri Nilai Mata Kuliah")
 
-    with col1:
-        course_name = st.text_input(
-            "Nama Mata Kuliah"
+    if not courses:
+        st.info(
+            "Belum ada mata kuliah. "
+            "Tambahkan mata kuliah terlebih dahulu di halaman Mata Kuliah."
         )
+    else:
+        course_options = {
+            f"{c['course_name']} ({c['credits']} SKS)": c
+            for c in courses
+        }
 
-    with col2:
-        credits = st.number_input(
-            "SKS",
-            min_value=1,
-            step=1,
-            value=3
-        )
+        col1, col2 = st.columns([3, 1])
 
-    with col3:
-        grade = st.selectbox(
-            "Grade",
-            GRADES
-        )
-
-    if st.button(
-        "Tambah Nilai",
-        type="primary"
-    ):
-
-        if not course_name:
-            st.error("Nama mata kuliah harus diisi.")
-        else:
-            st.session_state.gpa_flash = (
-                f"Nilai untuk {course_name} "
-                f"({grade}) berhasil ditambahkan."
+        with col1:
+            selected_label = st.selectbox(
+                "Mata Kuliah",
+                list(course_options.keys())
             )
-            st.rerun()
+
+        selected_course = course_options[selected_label]
+
+        with col2:
+            current_grade = selected_course.get("grade")
+            grade = st.selectbox(
+                "Grade",
+                GRADES,
+                index=(
+                    GRADES.index(current_grade)
+                    if current_grade in GRADES
+                    else 0
+                )
+            )
+
+        if st.button("Simpan Nilai", type="primary"):
+            update_resp = update_course(
+                token,
+                selected_course["id"],
+                {
+                    "course_name": selected_course["course_name"],
+                    "credits": selected_course["credits"],
+                    "class_name": selected_course["class_name"],
+                    "lecturer_name": selected_course["lecturer_name"],
+                    "grade": grade,
+                }
+            )
+
+            if update_resp.status_code == 200:
+                st.session_state.gpa_flash = (
+                    f"Nilai untuk {selected_course['course_name']} "
+                    f"({grade}) berhasil disimpan."
+                )
+                st.rerun()
+            else:
+                try:
+                    detail = update_resp.json().get(
+                        "detail", "Gagal menyimpan nilai."
+                    )
+                except Exception:
+                    detail = "Gagal menyimpan nilai."
+                st.error(detail)
 
     st.divider()
 
     # --- GPA Summary ---
     st.subheader("Ringkasan GPA")
 
-    # Mock data untuk demo
-    gpa_data = {
-        "Mata Kuliah": [
-            "Matematika",
-            "Fisika",
-            "Kimia",
-            "Biologi",
-            "Bahasa Inggris",
-        ],
-        "SKS": [3, 4, 3, 3, 2],
-        "Grade": ["A", "AB", "B", "A", "AB"],
-        "Bobot": [
-            GRADE_POINTS["A"] * 3,
-            GRADE_POINTS["AB"] * 4,
-            GRADE_POINTS["B"] * 3,
-            GRADE_POINTS["A"] * 3,
-            GRADE_POINTS["AB"] * 2,
-        ],
-    }
+    rows = []
 
-    df = pd.DataFrame(gpa_data)
+    for course in courses:
+        grade = course.get("grade")
+
+        if not grade or grade not in GRADE_POINTS:
+            continue
+
+        sks = course["credits"]
+        bobot = GRADE_POINTS[grade] * sks
+
+        rows.append({
+            "Mata Kuliah": course["course_name"],
+            "SKS": sks,
+            "Grade": grade,
+            "Bobot": bobot,
+        })
+
+    if not rows:
+        st.info("Belum ada nilai yang dimasukkan.")
+        return
+
+    df = pd.DataFrame(rows)
 
     # Tampilkan tabel nilai
     st.dataframe(
@@ -116,58 +150,10 @@ def render_gpa_tracker():
     st.divider()
 
     # Metrik GPA
-    col_gpa, col_target = st.columns(2)
+    col_gpa, col_sks = st.columns(2)
 
     with col_gpa:
-        st.metric(
-            "Current GPA",
-            f"{current_gpa:.2f}"
-        )
+        st.metric("Current GPA", f"{current_gpa:.2f}")
 
-    with col_target:
-        st.metric(
-            "Target GPA",
-            "3.50"
-        )
-
-    st.divider()
-
-    # --- Grafik Trend GPA ---
-    st.subheader("Trend GPA")
-
-    # Mock historical data
-    gpa_history = pd.DataFrame({
-        "Semester": [
-            "Sem 1",
-            "Sem 2",
-            "Sem 3",
-            "Sem 4",
-            "Sem 5",
-        ],
-        "GPA": [3.2, 3.35, 3.40, 3.45, current_gpa],
-    })
-
-    st.line_chart(
-        gpa_history.set_index("Semester")
-    )
-
-    st.divider()
-
-    # --- Performa Per Semester ---
-    st.subheader("Performa Per Semester")
-
-    semester_data = pd.DataFrame({
-        "Semester": [
-            "Sem 1",
-            "Sem 2",
-            "Sem 3",
-            "Sem 4",
-            "Sem 5",
-        ],
-        "Mata Kuliah": [5, 5, 5, 6, 5],
-        "IPK": [3.2, 3.35, 3.40, 3.45, 3.48],
-    })
-
-    st.bar_chart(
-        semester_data.set_index("Semester")
-    )
+    with col_sks:
+        st.metric("Total SKS Dinilai", int(total_sks))

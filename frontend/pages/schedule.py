@@ -3,9 +3,9 @@ import streamlit as st
 from datetime import time
 
 from services.api import (
-    get_schedules,
+    fetch_schedules,
     create_schedule,
-    get_courses,
+    fetch_courses,
     update_schedule,
 )
 
@@ -58,17 +58,13 @@ def render_schedule():
         "Daftar Jadwal"
     )
 
-    response = get_schedules(token)
-
-    if response.status_code != 200:
-
+    try:
+        schedules = fetch_schedules(token)
+    except Exception:
         st.error(
             "Gagal memuat data jadwal."
         )
-
         return
-
-    schedules = response.json()
 
     if not schedules:
 
@@ -101,45 +97,50 @@ def render_schedule():
                 # --- Form edit jadwal ---
                 with st.expander("Edit"):
 
-                    day_index = (
-                        DAYS.index(schedule["day"])
-                        if schedule["day"] in DAYS
-                        else 0
-                    )
-
-                    edit_day = st.selectbox(
-                        "Day",
-                        DAYS,
-                        index=day_index,
-                        key=f"edit_day_{schedule['id']}"
-                    )
-
-                    edit_room = st.text_input(
-                        "Room",
-                        value=schedule["room"],
-                        key=f"edit_room_{schedule['id']}"
-                    )
-
-                    edit_start = st.time_input(
-                        "Start Time",
-                        value=_parse_time(
-                            schedule["start_time"]
-                        ),
-                        key=f"edit_start_{schedule['id']}"
-                    )
-
-                    edit_end = st.time_input(
-                        "End Time",
-                        value=_parse_time(
-                            schedule["end_time"]
-                        ),
-                        key=f"edit_end_{schedule['id']}"
-                    )
-
-                    if st.button(
-                        "Simpan Perubahan",
-                        key=f"save_{schedule['id']}"
+                    with st.form(
+                        key=f"edit_form_{schedule['id']}"
                     ):
+
+                        day_index = (
+                            DAYS.index(schedule["day"])
+                            if schedule["day"] in DAYS
+                            else 0
+                        )
+
+                        edit_day = st.selectbox(
+                            "Day",
+                            DAYS,
+                            index=day_index,
+                            key=f"edit_day_{schedule['id']}"
+                        )
+
+                        edit_room = st.text_input(
+                            "Room",
+                            value=schedule["room"],
+                            key=f"edit_room_{schedule['id']}"
+                        )
+
+                        edit_start = st.time_input(
+                            "Start Time",
+                            value=_parse_time(
+                                schedule["start_time"]
+                            ),
+                            key=f"edit_start_{schedule['id']}"
+                        )
+
+                        edit_end = st.time_input(
+                            "End Time",
+                            value=_parse_time(
+                                schedule["end_time"]
+                            ),
+                            key=f"edit_end_{schedule['id']}"
+                        )
+
+                        save_edit = st.form_submit_button(
+                            "Simpan Perubahan"
+                        )
+
+                    if save_edit:
 
                         if not edit_room:
 
@@ -202,13 +203,10 @@ def render_schedule():
         "Tambah Jadwal"
     )
 
-    course_resp = get_courses(token)
-
-    courses = (
-        course_resp.json()
-        if course_resp.status_code == 200
-        else []
-    )
+    try:
+        courses = fetch_courses(token)
+    except Exception:
+        courses = []
 
     if not courses:
 
@@ -224,32 +222,36 @@ def render_schedule():
         for c in courses
     }
 
-    selected_course = st.selectbox(
-        "Mata Kuliah",
-        list(course_options.keys())
-    )
+    with st.form(key="add_schedule_form"):
 
-    day = st.selectbox(
-        "Day",
-        DAYS
-    )
+        selected_course = st.selectbox(
+            "Mata Kuliah",
+            list(course_options.keys())
+        )
 
-    room = st.text_input(
-        "Room"
-    )
+        day = st.selectbox(
+            "Day",
+            DAYS
+        )
 
-    start_time = st.time_input(
-        "Start Time"
-    )
+        room = st.text_input(
+            "Room"
+        )
 
-    end_time = st.time_input(
-        "End Time"
-    )
+        start_time = st.time_input(
+            "Start Time"
+        )
 
-    if st.button(
-        "Add Schedule",
-        type="primary"
-    ):
+        end_time = st.time_input(
+            "End Time"
+        )
+
+        submit_add = st.form_submit_button(
+            "Add Schedule",
+            type="primary"
+        )
+
+    if submit_add:
 
         if not room:
 

@@ -82,7 +82,6 @@ def create_schedule(
         .filter(
             Schedule.user_id == current_user.id,
             Schedule.day == payload.day,
-            Schedule.room == payload.room
         )
         .all()
     )
@@ -171,7 +170,6 @@ def update_schedule(
         .filter(
             Schedule.user_id == current_user.id,
             Schedule.day == payload.day,
-            Schedule.room == payload.room,
             Schedule.id != schedule_id
         )
         .all()

@@ -43,3 +43,34 @@ def get_current_user(
         },
         timeout=5
     )
+
+
+def get_courses(token):
+    return requests.get(
+        f"{BASE_URL}/courses/",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def create_course(token, data):
+    return requests.post(
+        f"{BASE_URL}/courses/",
+        json=data,
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )
+
+
+def delete_course(token, course_id):
+    return requests.delete(
+        f"{BASE_URL}/courses/{course_id}",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        timeout=5
+    )

@@ -13,6 +13,7 @@ from services.api import (
 from pages.login import render_login
 from pages.register import render_register
 from pages.dashboard import render_dashboard
+from pages.course import render_course
 
 st.set_page_config(
     page_title="Campus Assignment Manager",
@@ -69,7 +70,10 @@ if (
 # Routing
 if is_logged_in():
 
-    render_dashboard()
+    if st.session_state.page == "course":
+        render_course()
+    else:
+        render_dashboard()
 
 elif st.session_state.page == "register":
 

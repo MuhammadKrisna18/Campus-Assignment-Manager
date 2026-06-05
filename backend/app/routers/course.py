@@ -74,3 +74,36 @@ def get_my_courses(
     )
 
     return courses
+
+
+@router.delete(
+    "/{course_id}",
+    status_code=204
+)
+def delete_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    course = (
+        db.query(Course)
+        .filter(
+            Course.id == course_id,
+            Course.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not course:
+        raise HTTPException(
+            status_code=404,
+            detail="Course not found"
+        )
+
+    db.delete(course)
+    db.commit()
+
+    return None

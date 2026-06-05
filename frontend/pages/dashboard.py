@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils.auth import logout
+from utils.auth import logout, go_to
 
 
 def render_dashboard():
@@ -35,3 +35,10 @@ def render_dashboard():
         tugas, deadline, dan aktivitas akademik lainnya.
         """
     )
+
+    st.divider()
+
+    st.subheader("Menu")
+    if st.button("Mata Kuliah"):
+        go_to("course")
+        st.rerun()

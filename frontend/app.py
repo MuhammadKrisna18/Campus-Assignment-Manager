@@ -16,6 +16,7 @@ from pages.dashboard import render_dashboard
 from pages.course import render_course
 from pages.schedule import render_schedule
 from pages.assignment import render_assignment
+from pages.gpa_tracker import render_gpa_tracker
 
 st.set_page_config(
     page_title="Campus Assignment Manager",
@@ -78,6 +79,8 @@ if is_logged_in():
         render_schedule()
     elif st.session_state.page == "assignment":
         render_assignment()
+    elif st.session_state.page == "gpa_tracker":
+        render_gpa_tracker()
     else:
         render_dashboard()
 

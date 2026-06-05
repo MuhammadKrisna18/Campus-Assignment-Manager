@@ -161,7 +161,7 @@ def render_dashboard():
 
     st.divider()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
 
@@ -191,4 +191,14 @@ def render_dashboard():
         ):
 
             go_to("assignment")
+            st.rerun()
+
+    with col4:
+
+        if st.button(
+            "GPA Tracker",
+            use_container_width=True
+        ):
+
+            go_to("gpa_tracker")
             st.rerun()

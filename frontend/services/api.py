@@ -205,3 +205,47 @@ def delete_assignment(token, assignment_id):
     )
     clear_cache()
     return resp
+
+
+def update_profile(token, data):
+    return _session.put(
+        f"{BASE_URL}/auth/profile",
+        json=data,
+        headers=_auth_headers(token),
+        timeout=5,
+    )
+
+
+def change_password(token, data):
+    return _session.put(
+        f"{BASE_URL}/auth/change-password",
+        json=data,
+        headers=_auth_headers(token),
+        timeout=5,
+    )
+
+
+def get_profile(token):
+    return _session.get(
+        f"{BASE_URL}/profile/",
+        headers=_auth_headers(token),
+        timeout=5,
+    )
+
+
+def create_profile(token, data):
+    return _session.post(
+        f"{BASE_URL}/profile/",
+        json=data,
+        headers=_auth_headers(token),
+        timeout=5,
+    )
+
+
+def update_profile_detail(token, data):
+    return _session.put(
+        f"{BASE_URL}/profile/",
+        json=data,
+        headers=_auth_headers(token),
+        timeout=5,
+    )

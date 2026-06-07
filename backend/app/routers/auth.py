@@ -11,7 +11,9 @@ from app.schemas.auth import (
     RegisterRequest,
     LoginRequest,
     LoginResponse,
-    UserResponse
+    UserResponse,
+    UpdateProfileRequest,
+    ChangePasswordRequest,
 )
 
 from app.core.security import (
@@ -171,3 +173,54 @@ def get_me(
     current_user: User = Depends(get_current_user)
 ):
     return current_user
+
+
+@router.put(
+    "/profile",
+    response_model=UserResponse
+)
+def update_profile(
+    payload: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not payload.full_name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Nama tidak boleh kosong"
+        )
+
+    current_user.full_name = payload.full_name.strip()
+    db.commit()
+    db.refresh(current_user)
+
+    return current_user
+
+
+@router.put("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not verify_password(
+        payload.current_password,
+        current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Password lama tidak sesuai"
+        )
+
+    if len(payload.new_password) < 6:
+        raise HTTPException(
+            status_code=400,
+            detail="Password baru minimal 6 karakter"
+        )
+
+    current_user.password_hash = hash_password(
+        payload.new_password
+    )
+    db.commit()
+
+    return {"message": "Password berhasil diubah"}

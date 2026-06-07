@@ -7,6 +7,7 @@ class CourseCreate(BaseModel):
     class_name: str
     lecturer_name: str
     grade: str | None = None
+    semester: int | None = None
 
 
 class CourseResponse(BaseModel):
@@ -16,6 +17,7 @@ class CourseResponse(BaseModel):
     class_name: str
     lecturer_name: str
     grade: str | None = None
+    semester: int | None = None
 
     class Config:
         from_attributes = True
@@ -27,3 +29,4 @@ class CourseUpdate(BaseModel):
     class_name: str
     lecturer_name: str
     grade: str | None = None
+    semester: int | None = None

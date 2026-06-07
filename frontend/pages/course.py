@@ -69,10 +69,12 @@ def render_course():
                         f"**{course['course_name']}**"
                     )
 
+                    sem = course.get("semester")
                     st.write(
                         f"Dosen: {course['lecturer_name']} | "
                         f"Kelas: {course['class_name']} | "
                         f"SKS: {course['credits']} | "
+                        f"Sem: {sem if sem else '-'} | "
                         f"Grade: {course.get('grade') or '-'}"
                     )
 
@@ -135,6 +137,15 @@ def render_course():
                             key=f"edit_credits_{course['id']}"
                         )
 
+                        edit_semester = st.number_input(
+                            "Semester",
+                            min_value=1,
+                            max_value=14,
+                            step=1,
+                            value=int(course["semester"]) if course.get("semester") else 1,
+                            key=f"edit_sem_{course['id']}"
+                        )
+
                         edit_grade = st.selectbox(
                             "Grade",
                             ["(Belum dinilai)"] + GRADES,
@@ -172,6 +183,7 @@ def render_course():
                                     "credits": int(edit_credits),
                                     "class_name": edit_class,
                                     "lecturer_name": edit_lecturer,
+                                    "semester": int(edit_semester),
                                     "grade": (
                                         edit_grade
                                         if edit_grade in GRADES
@@ -232,6 +244,14 @@ def render_course():
             step=1
         )
 
+        semester = st.number_input(
+            "Semester",
+            min_value=1,
+            max_value=14,
+            step=1,
+            value=1
+        )
+
         grade = st.selectbox(
             "Grade",
             ["(Belum dinilai)"] + GRADES
@@ -261,6 +281,7 @@ def render_course():
                 "credits": int(credits),
                 "class_name": class_name,
                 "lecturer_name": lecturer_name,
+                "semester": int(semester),
                 "grade": grade if grade in GRADES else None
             }
 

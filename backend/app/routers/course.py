@@ -69,7 +69,8 @@ def create_course(
         credits=payload.credits,
         class_name=payload.class_name,
         lecturer_name=payload.lecturer_name,
-        grade=payload.grade
+        grade=payload.grade,
+        semester=payload.semester
     )
 
     db.add(course)
@@ -154,6 +155,7 @@ def update_course(
     course.class_name = payload.class_name
     course.lecturer_name = payload.lecturer_name
     course.grade = payload.grade
+    course.semester = payload.semester
 
     db.commit()
     db.refresh(course)

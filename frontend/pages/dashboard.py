@@ -20,13 +20,18 @@ def render_dashboard():
     token = st.session_state.token
 
     # --- Header user ---
-    col_info, col_logout = st.columns([4, 1])
+    col_info, col_profile, col_logout = st.columns([4, 1, 1])
 
     with col_info:
         st.write(
             f"**{user['full_name']}** | {user['email']}"
         )
         st.caption(f"Role: {user['role']}")
+
+    with col_profile:
+        if st.button("Profil"):
+            go_to("profile")
+            st.rerun()
 
     with col_logout:
         if st.button("Logout"):

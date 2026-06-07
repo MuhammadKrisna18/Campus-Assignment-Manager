@@ -18,10 +18,16 @@ GRADE_POINTS = {
 }
 
 
+def _calc_gpa(rows):
+    """Hitung GPA dari list dict {SKS, Bobot}."""
+    total_sks = sum(r["SKS"] for r in rows)
+    total_bobot = sum(r["Bobot"] for r in rows)
+    return round(total_bobot / total_sks, 2) if total_sks > 0 else 0.0
+
+
 def render_gpa_tracker():
     token = st.session_state.token
 
-    # Header + tombol kembali ke dashboard
     col_title, col_back = st.columns([4, 1])
     with col_title:
         st.title("GPA Tracker")
@@ -30,28 +36,30 @@ def render_gpa_tracker():
             go_to("dashboard")
             st.rerun()
 
-    # Flash message setelah aksi
     flash = st.session_state.pop("gpa_flash", None)
     if flash:
         st.success(flash)
 
-    # Ambil data mata kuliah dari backend
     try:
         courses = fetch_courses(token)
     except Exception:
         st.error("Gagal memuat data mata kuliah.")
         return
 
-    # --- Beri / Ubah Nilai Mata Kuliah ---
+    # ============================================================
+    # BERI NILAI
+    # ============================================================
+
     st.subheader("Beri Nilai Mata Kuliah")
 
     if not courses:
         st.info(
             "Belum ada mata kuliah. "
-            "Tambahkan mata kuliah terlebih dahulu di halaman Mata Kuliah."
+            "Tambahkan di halaman Mata Kuliah terlebih dahulu."
         )
     else:
         course_options = {
+            f"Sem {c.get('semester') or '?'} — "
             f"{c['course_name']} ({c['credits']} SKS)": c
             for c in courses
         }
@@ -87,14 +95,14 @@ def render_gpa_tracker():
                     "credits": selected_course["credits"],
                     "class_name": selected_course["class_name"],
                     "lecturer_name": selected_course["lecturer_name"],
+                    "semester": selected_course.get("semester"),
                     "grade": grade,
                 }
             )
-
             if update_resp.status_code == 200:
                 st.session_state.gpa_flash = (
-                    f"Nilai untuk {selected_course['course_name']} "
-                    f"({grade}) berhasil disimpan."
+                    f"Nilai {selected_course['course_name']} "
+                    f"({grade}) disimpan."
                 )
                 st.rerun()
             else:
@@ -108,25 +116,22 @@ def render_gpa_tracker():
 
     st.divider()
 
-    # --- GPA Summary ---
-    st.subheader("Ringkasan GPA")
+    # ============================================================
+    # KUMPULKAN DATA NILAI
+    # ============================================================
 
     rows = []
-
     for course in courses:
-        grade = course.get("grade")
-
-        if not grade or grade not in GRADE_POINTS:
+        g = course.get("grade")
+        if not g or g not in GRADE_POINTS:
             continue
-
         sks = course["credits"]
-        bobot = GRADE_POINTS[grade] * sks
-
         rows.append({
+            "Semester": course.get("semester") or 0,
             "Mata Kuliah": course["course_name"],
             "SKS": sks,
-            "Grade": grade,
-            "Bobot": bobot,
+            "Grade": g,
+            "Bobot": GRADE_POINTS[g] * sks,
         })
 
     if not rows:
@@ -135,25 +140,88 @@ def render_gpa_tracker():
 
     df = pd.DataFrame(rows)
 
-    # Tampilkan tabel nilai
-    st.dataframe(
-        df,
-        use_container_width=True,
-        hide_index=True
-    )
+    # ============================================================
+    # RINGKASAN KESELURUHAN
+    # ============================================================
 
-    # Hitung GPA
-    total_bobot = df["Bobot"].sum()
+    st.subheader("Ringkasan GPA")
+
+    current_gpa = _calc_gpa(rows)
     total_sks = df["SKS"].sum()
-    current_gpa = total_bobot / total_sks if total_sks > 0 else 0.0
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("IPK Kumulatif", f"{current_gpa:.2f}")
+    col2.metric("Total SKS", int(total_sks))
+    col3.metric("Mata Kuliah Dinilai", len(rows))
 
     st.divider()
 
-    # Metrik GPA
-    col_gpa, col_sks = st.columns(2)
+    # ============================================================
+    # TABEL NILAI PER SEMESTER
+    # ============================================================
 
-    with col_gpa:
-        st.metric("Current GPA", f"{current_gpa:.2f}")
+    st.subheader("Tabel Nilai")
 
-    with col_sks:
-        st.metric("Total SKS Dinilai", int(total_sks))
+    # Filter semester
+    semesters = sorted(df["Semester"].unique())
+    sem_options = ["Semua"] + [
+        f"Semester {s}" if s > 0 else "Tanpa Semester"
+        for s in semesters
+    ]
+    selected_sem = st.selectbox("Filter Semester", sem_options)
+
+    if selected_sem == "Semua":
+        display_df = df.drop(columns=["Bobot"])
+    else:
+        if selected_sem == "Tanpa Semester":
+            sem_val = 0
+        else:
+            sem_val = int(selected_sem.split()[-1])
+        display_df = df[df["Semester"] == sem_val].drop(
+            columns=["Bobot"]
+        )
+
+    st.dataframe(
+        display_df.reset_index(drop=True),
+        width="stretch",
+        hide_index=True
+    )
+
+    st.divider()
+
+    # ============================================================
+    # GRAFIK IPK PER SEMESTER
+    # ============================================================
+
+    st.subheader("Grafik IPK per Semester")
+
+    # Hitung IPK per semester (hanya semester bernomor)
+    df_sem = df[df["Semester"] > 0].copy()
+
+    if df_sem.empty:
+        st.info(
+            "Tambahkan semester pada mata kuliah "
+            "untuk melihat grafik IPK per semester."
+        )
+    else:
+        sem_gpa = []
+        for sem in sorted(df_sem["Semester"].unique()):
+            sem_rows = df_sem[df_sem["Semester"] == sem]
+            sem_sks = sem_rows["SKS"].sum()
+            sem_bobot = sem_rows["Bobot"].sum()
+            sem_gpa.append({
+                "Semester": f"Sem {sem}",
+                "IPS": round(sem_bobot / sem_sks, 2)
+            })
+
+        df_chart = pd.DataFrame(sem_gpa).set_index("Semester")
+
+        st.line_chart(df_chart)
+
+        # Tabel IPS per semester
+        st.caption("IPS (Indeks Prestasi Semester) tiap semester")
+        st.dataframe(
+            df_chart.reset_index(),
+            width="stretch",
+            hide_index=True
+        )

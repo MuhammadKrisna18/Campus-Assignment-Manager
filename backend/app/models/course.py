@@ -45,3 +45,8 @@ class Course(Base):
         String,
         nullable=True
     )
+
+    semester = Column(
+        Integer,
+        nullable=True
+    )

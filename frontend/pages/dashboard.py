@@ -1,21 +1,17 @@
 import streamlit as st
 
+from datetime import date, timedelta
+
 from utils.auth import logout, go_to
 
 from services.api import (
     fetch_courses,
     fetch_schedules,
     fetch_assignments,
-    complete_assignment,
-    delete_assignment,
 )
 
-
-PRIORITY_LABEL = {
-    "high": "🔴 High",
-    "medium": "🟡 Medium",
-    "low": "🟢 Low",
-}
+# Urutan hari untuk mencocokkan jadwal hari ini
+TODAY_NAME = date.today().strftime("%A")  # e.g. "Monday"
 
 
 def render_dashboard():
@@ -23,326 +19,205 @@ def render_dashboard():
     user = st.session_state.user
     token = st.session_state.token
 
+    # --- Header user ---
     col_info, col_logout = st.columns([4, 1])
 
     with col_info:
-
         st.write(
             f"**{user['full_name']}** | {user['email']}"
         )
-
-        st.caption(
-            f"Role: {user['role']}"
-        )
+        st.caption(f"Role: {user['role']}")
 
     with col_logout:
-
         if st.button("Logout"):
-
             logout()
             st.rerun()
 
-    st.title(
-        "Dashboard"
-    )
+    st.title("Dashboard")
+    st.success(f"Selamat datang, {user['full_name']}!")
 
-    st.success(
-        f"Selamat datang, {user['full_name']}!"
-    )
-
-    # Flash message setelah aksi tugas
+    # Flash message setelah aksi
     flash = st.session_state.pop("assignment_flash", None)
     if flash:
         st.info(flash)
 
-    st.write(
-        """
-        Selamat datang di Campus Assignment Manager.
-
-        Sistem ini membantu mahasiswa mengelola
-        mata kuliah dan jadwal perkuliahan.
-        """
-    )
-
     st.divider()
 
-    # ======================
-    # RINGKASAN TUGAS
-    # ======================
-
-    st.subheader(
-        "📝 Ringkasan Tugas"
-    )
+    # ============================================================
+    # FETCH DATA
+    # ============================================================
 
     try:
         assignments = fetch_assignments(token)
     except Exception:
-        assignments = None
-
-    if assignments is None:
-
-        st.error(
-            "Gagal memuat tugas."
-        )
-
-    elif len(assignments) == 0:
-
-        st.info(
-            "Belum ada tugas."
-        )
-
-    else:
-
-        total = len(assignments)
-
-        pending = [
-            a for a in assignments
-            if a["status"] != "completed"
-        ]
-
-        completed_count = total - len(pending)
-
-        col_total, col_pending, col_done = st.columns(3)
-
-        with col_total:
-            st.metric("Total Tugas", total)
-
-        with col_pending:
-            st.metric("Belum Selesai", len(pending))
-
-        with col_done:
-            st.metric("Selesai", completed_count)
-
-        # Daftar tugas (urut deadline terdekat) + aksi
-        # Selesai dan Hapus.
-        assignments_sorted = sorted(
-            assignments,
-            key=lambda a: a["due_date"]
-        )
-
-        for item in assignments_sorted:
-
-            with st.container(border=True):
-
-                col_info, col_status, col_action = st.columns(
-                    [4, 2, 2]
-                )
-
-                with col_info:
-
-                    st.markdown(
-                        f"**{item['title']}**"
-                    )
-
-                    st.write(
-                        f"{item['course_name']} | "
-                        f"Deadline: {item['due_date']}"
-                    )
-
-                    st.caption(
-                        PRIORITY_LABEL.get(
-                            item["priority"], item["priority"]
-                        )
-                    )
-
-                with col_status:
-
-                    if item["status"] == "completed":
-                        st.success("Completed")
-                    else:
-                        st.warning("Pending")
-
-                with col_action:
-
-                    if item["status"] != "completed":
-
-                        if st.button(
-                            "Selesai",
-                            key=f"done_{item['id']}",
-                        ):
-
-                            done_resp = complete_assignment(
-                                token, item["id"]
-                            )
-
-                            if done_resp.status_code == 200:
-                                st.session_state.assignment_flash = (
-                                    "Tugas ditandai selesai."
-                                )
-                            else:
-                                st.session_state.assignment_flash = (
-                                    "Gagal memperbarui tugas."
-                                )
-
-                            st.rerun()
-
-                    if st.button(
-                        "Hapus",
-                        key=f"del_{item['id']}",
-                    ):
-
-                        del_resp = delete_assignment(
-                            token, item["id"]
-                        )
-
-                        if del_resp.status_code in (200, 204):
-                            st.session_state.assignment_flash = (
-                                "Tugas dihapus."
-                            )
-                        else:
-                            st.session_state.assignment_flash = (
-                                "Gagal menghapus tugas."
-                            )
-
-                        st.rerun()
-
-    st.divider()
-
-    # ======================
-    # MATA KULIAH
-    # ======================
-
-    st.subheader(
-        "📚 Mata Kuliah Saya"
-    )
-
-    try:
-        courses = fetch_courses(token)
-    except Exception:
-        courses = None
-
-    if courses is None:
-
-        st.error(
-            "Gagal memuat mata kuliah."
-        )
-
-    elif len(courses) == 0:
-
-        st.info(
-            "Belum ada mata kuliah."
-        )
-
-    else:
-
-        for course in courses:
-
-            with st.container(
-                border=True
-            ):
-
-                st.markdown(
-                    f"### {course['course_name']}"
-                )
-
-                st.write(
-                    f"👨‍🏫 Dosen : {course['lecturer_name']}"
-                )
-
-                st.write(
-                    f"🏫 Kelas : {course['class_name']}"
-                )
-
-                st.write(
-                    f"📚 SKS : {course['credits']}"
-                )
-
-                st.write(
-                    f"📝 Grade : {course.get('grade') or '-'}"
-                )
-
-    st.divider()
-
-    # ======================
-    # JADWAL
-    # ======================
-
-    st.subheader(
-        "🗓️ Jadwal Saya"
-    )
+        assignments = []
 
     try:
         schedules = fetch_schedules(token)
     except Exception:
-        schedules = None
+        schedules = []
 
-    if schedules is None:
+    try:
+        courses = fetch_courses(token)
+    except Exception:
+        courses = []
 
-        st.error(
-            "Gagal memuat jadwal."
-        )
+    # ============================================================
+    # METRIC — Total Task & Completed
+    # ============================================================
 
-    elif len(schedules) == 0:
+    st.subheader("📊 Ringkasan")
 
-        st.info(
-            "Belum ada jadwal."
-        )
-
-    else:
-
-        for schedule in schedules:
-
-            with st.container(
-                border=True
-            ):
-
-                st.markdown(
-                    f"### {schedule['course_name']}"
-                )
-
-                st.write(
-                    f"📅 Hari : {schedule['day']}"
-                )
-
-                st.write(
-                    f"🏫 Ruang : {schedule['room']}"
-                )
-
-                st.write(
-                    f"⏰ {schedule['start_time']} - "
-                    f"{schedule['end_time']}"
-                )
-
-    st.divider()
+    total = len(assignments)
+    completed = sum(
+        1 for a in assignments
+        if a["status"] == "completed"
+    )
+    pending = total - completed
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
+        st.metric("Total Task", total)
 
-        if st.button(
-            "Kelola Mata Kuliah",
-            use_container_width=True
-        ):
+    with col2:
+        st.metric("Completed", completed)
 
+    with col3:
+        st.metric("Pending", pending)
+
+    with col4:
+        st.metric("Mata Kuliah", len(courses))
+
+    st.divider()
+
+    # ============================================================
+    # REMINDER — Upcoming Deadline
+    # ============================================================
+
+    st.subheader("⏰ Upcoming Deadline")
+
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    next_3_days = today + timedelta(days=3)
+
+    # Filter tugas pending saja, urutkan deadline terdekat
+    upcoming = sorted(
+        [
+            a for a in assignments
+            if a["status"] != "completed"
+        ],
+        key=lambda a: a["due_date"]
+    )
+
+    if not upcoming:
+        st.info("Tidak ada tugas yang mendesak.")
+    else:
+        # Hitung berapa yang deadline besok
+        due_tomorrow = [
+            a for a in upcoming
+            if a["due_date"] == str(tomorrow)
+        ]
+
+        due_today = [
+            a for a in upcoming
+            if a["due_date"] == str(today)
+        ]
+
+        # Reminder warning
+        if due_today:
+            st.error(
+                f"🚨 {len(due_today)} tugas deadline hari ini!"
+            )
+
+        if due_tomorrow:
+            st.warning(
+                f"⚠️ {len(due_tomorrow)} deadline tomorrow"
+            )
+
+        # Tampilkan tugas dalam 3 hari ke depan
+        near_deadline = [
+            a for a in upcoming
+            if a["due_date"] <= str(next_3_days)
+        ]
+
+        if near_deadline:
+            for item in near_deadline:
+                with st.container(border=True):
+                    col_task, col_date = st.columns([3, 1])
+
+                    with col_task:
+                        st.write(f"**{item['title']}**")
+                        st.caption(
+                            f"{item['course_name']} | "
+                            f"Priority: {item['priority'].upper()}"
+                        )
+
+                    with col_date:
+                        st.caption(f"📅 {item['due_date']}")
+
+        elif upcoming:
+            # Tidak ada yang dalam 3 hari tapi masih ada yang pending
+            next_item = upcoming[0]
+            st.write(
+                f"Tugas terdekat: **{next_item['title']}** "
+                f"— {next_item['due_date']}"
+            )
+
+    st.divider()
+
+    # ============================================================
+    # TODAY'S SCHEDULE
+    # ============================================================
+
+    st.subheader(f"📅 Jadwal Hari Ini ({TODAY_NAME})")
+
+    today_schedules = [
+        s for s in schedules
+        if s["day"].lower() == TODAY_NAME.lower()
+    ]
+
+    if not today_schedules:
+        st.info("Tidak ada jadwal untuk hari ini.")
+    else:
+        for schedule in today_schedules:
+            with st.container(border=True):
+                col_sub, col_time = st.columns([3, 1])
+
+                with col_sub:
+                    st.write(f"**{schedule['course_name']}**")
+                    st.caption(f"🏫 Ruang: {schedule['room']}")
+
+                with col_time:
+                    st.caption(
+                        f"⏰ {schedule['start_time']} - "
+                        f"{schedule['end_time']}"
+                    )
+
+    st.divider()
+
+    # ============================================================
+    # NAVIGASI
+    # ============================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if st.button("Kelola Mata Kuliah", width='stretch'):
             go_to("course")
             st.rerun()
 
     with col2:
-
-        if st.button(
-            "Kelola Jadwal",
-            use_container_width=True
-        ):
-
+        if st.button("Kelola Jadwal", width='stretch'):
             go_to("schedule")
             st.rerun()
 
     with col3:
-
-        if st.button(
-            "Kelola Tugas",
-            use_container_width=True
-        ):
-
+        if st.button("Kelola Tugas", width='stretch'):
             go_to("assignment")
             st.rerun()
 
     with col4:
-
-        if st.button(
-            "GPA Tracker",
-            use_container_width=True
-        ):
-
+        if st.button("GPA Tracker", width='stretch'):
             go_to("gpa_tracker")
             st.rerun()

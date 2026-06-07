@@ -18,6 +18,8 @@ DAYS = [
     "Wednesday",
     "Thursday",
     "Friday",
+    "Saturday",
+    "Sunday",
 ]
 
 

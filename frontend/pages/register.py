@@ -37,7 +37,7 @@ def render_register():
 
     if st.button(
         "Register",
-        use_container_width=True
+        width='stretch'
     ):
 
         if not full_name or not email or not password:
@@ -100,7 +100,7 @@ def render_register():
 
     if st.button(
         "Login",
-        use_container_width=True
+        width='stretch'
     ):
 
         go_to(

@@ -162,6 +162,8 @@ def render_assignment():
                             item["priority"], item["priority"]
                         )
                     )
+                    if item.get("note"):
+                        st.info(f"📝 {item['note']}")
 
                 with col_status:
                     if item["status"] == "completed":
@@ -231,6 +233,12 @@ def render_assignment():
                                 ),
                                 key=f"edit_prio_{item['id']}"
                             )
+                            edit_note = st.text_area(
+                                "Catatan",
+                                value=item.get("note") or "",
+                                placeholder="Tulis catatan, progress, atau link referensi...",
+                                key=f"edit_note_{item['id']}"
+                            )
                             save = st.form_submit_button(
                                 "Simpan Perubahan"
                             )
@@ -246,6 +254,7 @@ def render_assignment():
                                         "title": edit_title,
                                         "due_date": edit_due.isoformat(),
                                         "priority": edit_priority,
+                                        "note": edit_note or None,
                                     }
                                 )
                                 if resp.status_code == 200:
@@ -288,6 +297,10 @@ def render_assignment():
         title = st.text_input("Judul Tugas")
         due_date = st.date_input("Deadline")
         priority = st.selectbox("Priority", PRIORITIES)
+        note = st.text_area(
+            "Catatan (opsional)",
+            placeholder="Tulis catatan, progress, atau link referensi..."
+        )
 
         submit_add = st.form_submit_button(
             "Add Assignment",
@@ -303,6 +316,7 @@ def render_assignment():
                 "title": title,
                 "due_date": due_date.isoformat(),
                 "priority": priority,
+                "note": note or None,
             }
             resp = create_assignment(token, data)
 

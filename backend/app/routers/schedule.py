@@ -250,3 +250,36 @@ def get_my_schedules(
         _to_response(schedule, course)
         for schedule, course in results
     ]
+
+
+@router.delete(
+    "/{schedule_id}",
+    status_code=204
+)
+def delete_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    schedule = (
+        db.query(Schedule)
+        .filter(
+            Schedule.id == schedule_id,
+            Schedule.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not schedule:
+        raise HTTPException(
+            status_code=404,
+            detail="Schedule not found"
+        )
+
+    db.delete(schedule)
+    db.commit()
+
+    return None

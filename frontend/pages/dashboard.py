@@ -99,7 +99,6 @@ def render_dashboard():
 
     today = date.today()
     tomorrow = today + timedelta(days=1)
-    next_3_days = today + timedelta(days=3)
 
     # Filter tugas pending saja, urutkan deadline terdekat
     upcoming = sorted(
@@ -113,18 +112,17 @@ def render_dashboard():
     if not upcoming:
         st.info("Tidak ada tugas yang mendesak.")
     else:
-        # Hitung berapa yang deadline besok
-        due_tomorrow = [
-            a for a in upcoming
-            if a["due_date"] == str(tomorrow)
-        ]
-
+        # Reminder warning untuk deadline hari ini / besok
         due_today = [
             a for a in upcoming
             if a["due_date"] == str(today)
         ]
 
-        # Reminder warning
+        due_tomorrow = [
+            a for a in upcoming
+            if a["due_date"] == str(tomorrow)
+        ]
+
         if due_today:
             st.error(
                 f"🚨 {len(due_today)} tugas deadline hari ini!"
@@ -132,37 +130,24 @@ def render_dashboard():
 
         if due_tomorrow:
             st.warning(
-                f"⚠️ {len(due_tomorrow)} deadline tomorrow"
+                f"⚠️ {len(due_tomorrow)} tugas deadline besok"
             )
 
-        # Tampilkan tugas dalam 3 hari ke depan
-        near_deadline = [
-            a for a in upcoming
-            if a["due_date"] <= str(next_3_days)
-        ]
+        # Tampilkan semua tugas yang belum selesai
+        for item in upcoming:
+            with st.container(border=True):
+                col_task, col_date = st.columns([3, 1])
 
-        if near_deadline:
-            for item in near_deadline:
-                with st.container(border=True):
-                    col_task, col_date = st.columns([3, 1])
+                with col_task:
+                    st.write(f"**{item['title']}**")
+                    st.caption(
+                        f"{item['course_name']} | "
+                        f"Priority: {item['priority'].upper()}"
+                    )
 
-                    with col_task:
-                        st.write(f"**{item['title']}**")
-                        st.caption(
-                            f"{item['course_name']} | "
-                            f"Priority: {item['priority'].upper()}"
-                        )
+                with col_date:
+                    st.caption(f"📅 {item['due_date']}")
 
-                    with col_date:
-                        st.caption(f"📅 {item['due_date']}")
-
-        elif upcoming:
-            # Tidak ada yang dalam 3 hari tapi masih ada yang pending
-            next_item = upcoming[0]
-            st.write(
-                f"Tugas terdekat: **{next_item['title']}** "
-                f"— {next_item['due_date']}"
-            )
 
     st.divider()
 
@@ -203,21 +188,21 @@ def render_dashboard():
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        if st.button("Kelola Mata Kuliah", width='stretch'):
+        if st.button("Kelola Mata Kuliah", use_container_width=True):
             go_to("course")
             st.rerun()
 
     with col2:
-        if st.button("Kelola Jadwal", width='stretch'):
+        if st.button("Kelola Jadwal", use_container_width=True):
             go_to("schedule")
             st.rerun()
 
     with col3:
-        if st.button("Kelola Tugas", width='stretch'):
+        if st.button("Kelola Tugas", use_container_width=True):
             go_to("assignment")
             st.rerun()
 
     with col4:
-        if st.button("GPA Tracker", width='stretch'):
+        if st.button("GPA Tracker", use_container_width=True):
             go_to("gpa_tracker")
             st.rerun()

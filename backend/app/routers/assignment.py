@@ -12,6 +12,7 @@ from app.models.user import User
 
 from app.schemas.assignment import (
     AssignmentCreate,
+    AssignmentUpdate,
     AssignmentResponse
 )
 
@@ -116,6 +117,96 @@ def get_my_assignments(
         _to_response(assignment, course)
         for assignment, course in results
     ]
+
+
+@router.get(
+    "/{assignment_id}",
+    response_model=AssignmentResponse
+)
+def get_assignment_detail(
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    assignment = (
+        db.query(Assignment)
+        .filter(
+            Assignment.id == assignment_id,
+            Assignment.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not assignment:
+        raise HTTPException(
+            status_code=404,
+            detail="Assignment not found"
+        )
+
+    course = (
+        db.query(Course)
+        .filter(
+            Course.id == assignment.course_id
+        )
+        .first()
+    )
+
+    return _to_response(assignment, course)
+
+
+@router.put(
+    "/{assignment_id}",
+    response_model=AssignmentResponse
+)
+def update_assignment(
+    assignment_id: int,
+    payload: AssignmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    assignment = (
+        db.query(Assignment)
+        .filter(
+            Assignment.id == assignment_id,
+            Assignment.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not assignment:
+        raise HTTPException(
+            status_code=404,
+            detail="Assignment not found"
+        )
+
+    if payload.priority not in VALID_PRIORITIES:
+        raise HTTPException(
+            status_code=400,
+            detail="Priority tidak valid"
+        )
+
+    assignment.title = payload.title
+    assignment.due_date = payload.due_date
+    assignment.priority = payload.priority
+
+    db.commit()
+    db.refresh(assignment)
+
+    course = (
+        db.query(Course)
+        .filter(
+            Course.id == assignment.course_id
+        )
+        .first()
+    )
+
+    return _to_response(assignment, course)
 
 
 @router.patch(

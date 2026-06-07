@@ -7,6 +7,7 @@ from services.api import (
     create_schedule,
     fetch_courses,
     update_schedule,
+    delete_schedule,
 )
 
 from utils.auth import go_to
@@ -30,6 +31,33 @@ def _parse_time(value):
         return time(parts[0], parts[1])
     except Exception:
         return time(7, 0)
+
+
+def _parse_time_input(raw: str):
+    """
+    Format input teks bebas menjadi objek time.
+    Contoh:
+      "9"     -> time(9, 0)   -> "09:00"
+      "930"   -> time(9, 30)  -> "09:30"
+      "9:30"  -> time(9, 30)  -> "09:30"
+      "14:45" -> time(14, 45) -> "14:45"
+    Mengembalikan None jika tidak valid.
+    """
+    raw = raw.strip().replace(".", ":")
+    try:
+        if ":" in raw:
+            h, m = raw.split(":", 1)
+            return time(int(h), int(m))
+        elif len(raw) <= 2:
+            return time(int(raw), 0)
+        elif len(raw) == 3:
+            return time(int(raw[0]), int(raw[1:]))
+        elif len(raw) == 4:
+            return time(int(raw[:2]), int(raw[2:]))
+        else:
+            return None
+    except Exception:
+        return None
 
 
 def render_schedule():
@@ -82,19 +110,38 @@ def render_schedule():
                 border=True
             ):
 
-                st.markdown(
-                    f"**{schedule['course_name']}**"
-                )
+                col_head, col_del = st.columns([5, 1])
 
-                st.write(
-                    f"Hari: {schedule['day']} | "
-                    f"Ruang: {schedule['room']}"
-                )
+                with col_head:
+                    st.markdown(
+                        f"**{schedule['course_name']}**"
+                    )
+                    st.write(
+                        f"Hari: {schedule['day']} | "
+                        f"Ruang: {schedule['room']}"
+                    )
+                    st.caption(
+                        f"{schedule['start_time']} - "
+                        f"{schedule['end_time']}"
+                    )
 
-                st.caption(
-                    f"{schedule['start_time']} - "
-                    f"{schedule['end_time']}"
-                )
+                with col_del:
+                    if st.button(
+                        "Hapus",
+                        key=f"del_{schedule['id']}"
+                    ):
+                        del_resp = delete_schedule(
+                            token, schedule["id"]
+                        )
+                        if del_resp.status_code in (200, 204):
+                            st.session_state.schedule_flash = (
+                                "Jadwal dihapus."
+                            )
+                        else:
+                            st.session_state.schedule_flash = (
+                                "Gagal menghapus jadwal."
+                            )
+                        st.rerun()
 
                 # --- Form edit jadwal ---
                 with st.expander("Edit"):
@@ -122,19 +169,19 @@ def render_schedule():
                             key=f"edit_room_{schedule['id']}"
                         )
 
-                        edit_start = st.time_input(
-                            "Start Time",
+                        edit_start = st.text_input(
+                            "Start Time (cth: 9 → 09:00, 930 → 09:30)",
                             value=_parse_time(
                                 schedule["start_time"]
-                            ),
+                            ).strftime("%H:%M"),
                             key=f"edit_start_{schedule['id']}"
                         )
 
-                        edit_end = st.time_input(
-                            "End Time",
+                        edit_end = st.text_input(
+                            "End Time (cth: 1045 → 10:45)",
                             value=_parse_time(
                                 schedule["end_time"]
-                            ),
+                            ).strftime("%H:%M"),
                             key=f"edit_end_{schedule['id']}"
                         )
 
@@ -144,59 +191,56 @@ def render_schedule():
 
                     if save_edit:
 
+                        parsed_start = _parse_time_input(edit_start)
+                        parsed_end = _parse_time_input(edit_end)
+
                         if not edit_room:
-
+                            st.error("Room harus diisi.")
+                        elif parsed_start is None:
                             st.error(
-                                "Room harus diisi."
+                                "Format Start Time tidak valid. "
+                                "Contoh: 9, 930, 09:30"
                             )
-
-                        elif edit_end <= edit_start:
-
+                        elif parsed_end is None:
+                            st.error(
+                                "Format End Time tidak valid. "
+                                "Contoh: 9, 930, 09:30"
+                            )
+                        elif parsed_end <= parsed_start:
                             st.error(
                                 "Jam selesai harus setelah jam mulai."
                             )
-
                         else:
-
                             update_resp = update_schedule(
                                 token,
                                 schedule["id"],
                                 {
                                     "day": edit_day,
                                     "room": edit_room,
-                                    "start_time": edit_start.strftime(
+                                    "start_time": parsed_start.strftime(
                                         "%H:%M:%S"
                                     ),
-                                    "end_time": edit_end.strftime(
+                                    "end_time": parsed_end.strftime(
                                         "%H:%M:%S"
                                     ),
                                 }
                             )
 
                             if update_resp.status_code == 200:
-
                                 st.session_state.schedule_flash = (
                                     "Jadwal diperbarui."
                                 )
-
                                 st.rerun()
-
                             else:
-
                                 try:
                                     detail = (
-                                        update_resp
-                                        .json()
-                                        .get(
+                                        update_resp.json().get(
                                             "detail",
                                             "Gagal memperbarui jadwal."
                                         )
                                     )
                                 except Exception:
-                                    detail = (
-                                        "Gagal memperbarui jadwal."
-                                    )
-
+                                    detail = "Gagal memperbarui jadwal."
                                 st.error(detail)
 
     st.divider()
@@ -240,12 +284,12 @@ def render_schedule():
             "Room"
         )
 
-        start_time = st.time_input(
-            "Start Time"
+        start_time = st.text_input(
+            "Start Time (cth: 9 → 09:00, 930 → 09:30)"
         )
 
-        end_time = st.time_input(
-            "End Time"
+        end_time = st.text_input(
+            "End Time (cth: 1045 → 10:45)"
         )
 
         submit_add = st.form_submit_button(
@@ -255,13 +299,22 @@ def render_schedule():
 
     if submit_add:
 
+        parsed_start = _parse_time_input(start_time)
+        parsed_end = _parse_time_input(end_time)
+
         if not room:
-
+            st.error("Room harus diisi.")
+        elif parsed_start is None:
             st.error(
-                "Room harus diisi."
+                "Format Start Time tidak valid. "
+                "Contoh: 9, 930, 09:30"
             )
-
-        elif end_time <= start_time:
+        elif parsed_end is None:
+            st.error(
+                "Format End Time tidak valid. "
+                "Contoh: 9, 930, 09:30"
+            )
+        elif parsed_end <= parsed_start:
 
             st.error(
                 "Jam selesai harus setelah jam mulai."
@@ -275,10 +328,10 @@ def render_schedule():
                 ],
                 "day": day,
                 "room": room,
-                "start_time": start_time.strftime(
+                "start_time": parsed_start.strftime(
                     "%H:%M:%S"
                 ),
-                "end_time": end_time.strftime(
+                "end_time": parsed_end.strftime(
                     "%H:%M:%S"
                 ),
             }

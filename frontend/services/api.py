@@ -155,9 +155,30 @@ def update_schedule(token, schedule_id, data):
     return resp
 
 
+def delete_schedule(token, schedule_id):
+    resp = _session.delete(
+        f"{BASE_URL}/schedules/{schedule_id}",
+        headers=_auth_headers(token),
+        timeout=5,
+    )
+    clear_cache()
+    return resp
+
+
 def create_assignment(token, data):
     resp = _session.post(
         f"{BASE_URL}/assignments/",
+        json=data,
+        headers=_auth_headers(token),
+        timeout=5,
+    )
+    clear_cache()
+    return resp
+
+
+def update_assignment(token, assignment_id, data):
+    resp = _session.put(
+        f"{BASE_URL}/assignments/{assignment_id}",
         json=data,
         headers=_auth_headers(token),
         timeout=5,

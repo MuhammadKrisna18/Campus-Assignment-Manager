@@ -138,7 +138,7 @@ def render_gpa_tracker():
     # Tampilkan tabel nilai
     st.dataframe(
         df,
-        width='stretch',
+        use_container_width=True,
         hide_index=True
     )
 

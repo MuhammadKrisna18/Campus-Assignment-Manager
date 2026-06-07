@@ -7,12 +7,14 @@ class AssignmentCreate(BaseModel):
     title: str
     due_date: date
     priority: str
+    note: str | None = None
 
 
 class AssignmentUpdate(BaseModel):
     title: str
     due_date: date
     priority: str
+    note: str | None = None
 
 
 class AssignmentResponse(BaseModel):
@@ -23,6 +25,7 @@ class AssignmentResponse(BaseModel):
     due_date: date
     priority: str
     status: str
+    note: str | None = None
 
     class Config:
         from_attributes = True

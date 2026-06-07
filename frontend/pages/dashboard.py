@@ -198,21 +198,21 @@ def render_dashboard():
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        if st.button("Kelola Mata Kuliah", width='stretch'):
+        if st.button("Kelola Mata Kuliah", use_container_width=True):
             go_to("course")
             st.rerun()
 
     with col2:
-        if st.button("Kelola Jadwal", width='stretch'):
+        if st.button("Kelola Jadwal", use_container_width=True):
             go_to("schedule")
             st.rerun()
 
     with col3:
-        if st.button(tugas_label, width='stretch'):
+        if st.button(tugas_label, use_container_width=True):
             go_to("assignment")
             st.rerun()
 
     with col4:
-        if st.button("GPA Tracker", width='stretch'):
+        if st.button("GPA Tracker", use_container_width=True):
             go_to("gpa_tracker")
             st.rerun()

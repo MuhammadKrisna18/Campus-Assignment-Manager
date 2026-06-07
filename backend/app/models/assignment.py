@@ -1,6 +1,7 @@
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import String
+from sqlalchemy import Text
 from sqlalchemy import Date
 from sqlalchemy import ForeignKey
 
@@ -48,4 +49,9 @@ class Assignment(Base):
         String,
         nullable=False,
         default="pending"
+    )
+
+    note = Column(
+        Text,
+        nullable=True
     )

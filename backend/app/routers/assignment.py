@@ -36,7 +36,8 @@ def _to_response(assignment, course):
         "title": assignment.title,
         "due_date": assignment.due_date,
         "priority": assignment.priority,
-        "status": assignment.status
+        "status": assignment.status,
+        "note": assignment.note
     }
 
 
@@ -80,7 +81,8 @@ def create_assignment(
         title=payload.title,
         due_date=payload.due_date,
         priority=payload.priority,
-        status="pending"
+        status="pending",
+        note=payload.note
     )
 
     db.add(assignment)
@@ -194,6 +196,7 @@ def update_assignment(
     assignment.title = payload.title
     assignment.due_date = payload.due_date
     assignment.priority = payload.priority
+    assignment.note = payload.note
 
     db.commit()
     db.refresh(assignment)

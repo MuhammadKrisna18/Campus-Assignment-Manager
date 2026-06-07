@@ -182,27 +182,37 @@ def render_dashboard():
     st.divider()
 
     # ============================================================
-    # NAVIGASI
+    # NAVIGASI — badge pending count di tombol Kelola Tugas
     # ============================================================
+
+    pending_count = sum(
+        1 for a in assignments if a["status"] == "pending"
+    )
+
+    tugas_label = (
+        f"Kelola Tugas 🔴 {pending_count}"
+        if pending_count > 0
+        else "Kelola Tugas"
+    )
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        if st.button("Kelola Mata Kuliah", use_container_width=True):
+        if st.button("Kelola Mata Kuliah", width='stretch'):
             go_to("course")
             st.rerun()
 
     with col2:
-        if st.button("Kelola Jadwal", use_container_width=True):
+        if st.button("Kelola Jadwal", width='stretch'):
             go_to("schedule")
             st.rerun()
 
     with col3:
-        if st.button("Kelola Tugas", use_container_width=True):
+        if st.button(tugas_label, width='stretch'):
             go_to("assignment")
             st.rerun()
 
     with col4:
-        if st.button("GPA Tracker", use_container_width=True):
+        if st.button("GPA Tracker", width='stretch'):
             go_to("gpa_tracker")
             st.rerun()

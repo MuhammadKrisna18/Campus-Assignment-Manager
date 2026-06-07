@@ -18,6 +18,8 @@ PRIORITY_LABEL = {
     "low": "🟢 Low",
 }
 
+PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+
 PRIORITIES = ["low", "medium", "high"]
 
 
@@ -37,10 +39,8 @@ def render_assignment():
         st.success(flash)
 
     # ============================================================
-    # DAFTAR TUGAS
+    # FETCH DATA
     # ============================================================
-
-    st.subheader("Daftar Tugas")
 
     try:
         assignments = fetch_assignments(token)
@@ -48,10 +48,104 @@ def render_assignment():
         st.error("Gagal memuat data tugas.")
         return
 
-    if not assignments:
-        st.info("Belum ada tugas.")
+    try:
+        courses = fetch_courses(token)
+    except Exception:
+        courses = []
+
+    # ============================================================
+    # FILTER & SORT
+    # ============================================================
+
+    st.subheader("Daftar Tugas")
+
+    col_f1, col_f2, col_f3 = st.columns(3)
+
+    with col_f1:
+        filter_status = st.selectbox(
+            "Status",
+            ["Semua", "Pending", "Completed"],
+            key="filter_status"
+        )
+
+    with col_f2:
+        filter_priority = st.selectbox(
+            "Priority",
+            ["Semua", "High", "Medium", "Low"],
+            key="filter_priority"
+        )
+
+    with col_f3:
+        # Daftar mata kuliah untuk filter
+        course_names = ["Semua"] + sorted(
+            list({a["course_name"] for a in assignments})
+        )
+        filter_course = st.selectbox(
+            "Mata Kuliah",
+            course_names,
+            key="filter_course"
+        )
+
+    col_s1, col_s2 = st.columns([2, 2])
+
+    with col_s1:
+        sort_by = st.selectbox(
+            "Urutkan",
+            ["Deadline Terdekat", "Deadline Terjauh", "Priority Tertinggi"],
+            key="sort_by"
+        )
+
+    # Terapkan filter
+    filtered = assignments
+
+    if filter_status == "Pending":
+        filtered = [a for a in filtered if a["status"] == "pending"]
+    elif filter_status == "Completed":
+        filtered = [a for a in filtered if a["status"] == "completed"]
+
+    if filter_priority != "Semua":
+        filtered = [
+            a for a in filtered
+            if a["priority"] == filter_priority.lower()
+        ]
+
+    if filter_course != "Semua":
+        filtered = [
+            a for a in filtered
+            if a["course_name"] == filter_course
+        ]
+
+    # Terapkan sort
+    if sort_by == "Deadline Terdekat":
+        filtered = sorted(filtered, key=lambda a: a["due_date"])
+    elif sort_by == "Deadline Terjauh":
+        filtered = sorted(
+            filtered, key=lambda a: a["due_date"], reverse=True
+        )
+    elif sort_by == "Priority Tertinggi":
+        filtered = sorted(
+            filtered,
+            key=lambda a: PRIORITY_ORDER.get(a["priority"], 99)
+        )
+
+    # Ringkasan hasil filter
+    total = len(assignments)
+    showing = len(filtered)
+    pending_count = sum(1 for a in assignments if a["status"] == "pending")
+    completed_count = total - pending_count
+
+    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1.metric("Total", total)
+    col_m2.metric("Pending", pending_count)
+    col_m3.metric("Completed", completed_count)
+
+    if showing != total:
+        st.caption(f"Menampilkan {showing} dari {total} tugas")
+
+    if not filtered:
+        st.info("Tidak ada tugas yang sesuai filter.")
     else:
-        for item in assignments:
+        for item in filtered:
             with st.container(border=True):
                 col_info, col_status, col_action = st.columns(
                     [4, 2, 2]
@@ -111,7 +205,7 @@ def render_assignment():
                             )
                         st.rerun()
 
-                # --- Form edit ---
+                # Form edit hanya untuk tugas pending
                 if item["status"] != "completed":
                     with st.expander("Edit"):
                         with st.form(
@@ -143,9 +237,7 @@ def render_assignment():
 
                         if save:
                             if not edit_title:
-                                st.error(
-                                    "Judul tugas harus diisi."
-                                )
+                                st.error("Judul tugas harus diisi.")
                             else:
                                 resp = update_assignment(
                                     token,
@@ -168,9 +260,7 @@ def render_assignment():
                                             "Gagal memperbarui tugas."
                                         )
                                     except Exception:
-                                        detail = (
-                                            "Gagal memperbarui tugas."
-                                        )
+                                        detail = "Gagal memperbarui tugas."
                                     st.error(detail)
 
     st.divider()
@@ -180,11 +270,6 @@ def render_assignment():
     # ============================================================
 
     st.subheader("Tambah Tugas")
-
-    try:
-        courses = fetch_courses(token)
-    except Exception:
-        courses = []
 
     if not courses:
         st.warning(
@@ -222,9 +307,7 @@ def render_assignment():
             resp = create_assignment(token, data)
 
             if resp.status_code in (200, 201):
-                st.session_state.assignment_flash = (
-                    "Tugas ditambahkan."
-                )
+                st.session_state.assignment_flash = "Tugas ditambahkan."
                 st.rerun()
             else:
                 st.error("Gagal menambahkan tugas.")

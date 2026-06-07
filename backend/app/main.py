@@ -15,6 +15,9 @@ from app.routers.schedule import (router as schedule_router)
 from app.models.assignment import Assignment
 from app.routers.assignment import (router as assignment_router)
 
+from app.models.profile import Profile
+from app.routers.profile import (router as profile_router)
+
 # Membuat tabel users jika belum ada
 Base.metadata.create_all(bind=engine)
 
@@ -36,6 +39,7 @@ app.include_router(auth_router)
 app.include_router(course_router)
 app.include_router(schedule_router)
 app.include_router(assignment_router)
+app.include_router(profile_router)
 
 @app.get("/")
 def root():

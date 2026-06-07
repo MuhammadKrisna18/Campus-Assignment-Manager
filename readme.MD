@@ -47,23 +47,27 @@ Sistem manajemen tugas dan akademik mahasiswa berbasis FastAPI, PostgreSQL, dan 
 
 ### Jadwal (Schedule)
 
-* CRUD jadwal perkuliahan
+* CRUD jadwal perkuliahan (tambah, lihat, edit, hapus)
 * Validasi bentrok jam antar jadwal pada hari yang sama
 * Validasi jam selesai harus setelah jam mulai
 
 ### Tugas (Assignment)
 
-* Tambah tugas dengan mata kuliah, deadline, dan prioritas
+* Tambah tugas dengan mata kuliah, deadline, prioritas, dan catatan (note)
+* Edit tugas (judul, deadline, prioritas, note)
+* Detail tugas (lihat satu tugas lengkap)
 * Tandai tugas selesai / hapus tugas (dari Dashboard)
+* Catatan (note) bisa ditambahkan saat membuat tugas atau setelahnya via edit
 * Ringkasan tugas di Dashboard: metrik total, belum selesai, selesai
-* Daftar tugas diurutkan berdasarkan deadline terdekat
+* Upcoming Deadline: daftar semua tugas pending, urut deadline terdekat
+* Warning otomatis untuk deadline hari ini dan besok
 
 ### Dashboard
 
 * Informasi profil user
-* Ringkasan tugas (metrik + daftar interaktif dengan aksi Selesai/Hapus)
-* Daftar mata kuliah (termasuk grade)
-* Daftar jadwal
+* Ringkasan metrik (Total Task, Completed, Pending, Jumlah Mata Kuliah)
+* Upcoming Deadline: semua tugas pending dengan warning deadline hari ini/besok
+* Jadwal hari ini
 * Navigasi cepat ke semua fitur
 
 ### Performa
@@ -260,13 +264,16 @@ FinalProject_CampusAssignmentManager/
 | GET    | `/schedules/`         | Daftar jadwal user |
 | POST   | `/schedules/`         | Tambah jadwal      |
 | PUT    | `/schedules/{id}`     | Edit jadwal        |
+| DELETE | `/schedules/{id}`     | Hapus jadwal       |
 
 ### Assignment
 
 | Method | Endpoint                         | Deskripsi                   |
 | ------ | -------------------------------- | --------------------------- |
 | GET    | `/assignments/`                  | Daftar tugas user           |
-| POST   | `/assignments/`                  | Tambah tugas                |
+| GET    | `/assignments/{id}`              | Detail satu tugas           |
+| POST   | `/assignments/`                  | Tambah tugas (+ note)       |
+| PUT    | `/assignments/{id}`              | Edit tugas (+ note)         |
 | PATCH  | `/assignments/{id}/complete`     | Tandai tugas selesai        |
 | DELETE | `/assignments/{id}`              | Hapus tugas                 |
 
@@ -294,3 +301,20 @@ IPK dihitung: `Σ (poin grade × SKS) / Σ SKS`
 * Pastikan PostgreSQL aktif dan database sudah dibuat sebelum menjalankan backend.
 * File `.env` berisi credential dan tidak boleh di-commit ke repository (sudah termasuk di `.gitignore`).
 * Cookie sesi login berlaku 60 menit, sinkron dengan masa hidup JWT.
+
+### Migrasi Database Manual
+
+Jika tabel sudah terbuat sebelum kolom baru ditambahkan di model, jalankan SQL berikut:
+
+```sql
+ALTER TABLE courses ADD COLUMN grade VARCHAR;
+ALTER TABLE assignments ADD COLUMN note TEXT;
+```
+
+### Menggunakan Swagger dengan Autentikasi
+
+1. Buka `http://127.0.0.1:8000/docs`
+2. Jalankan `POST /auth/login` → copy `access_token` dari response.
+3. Klik tombol **Authorize 🔒** di pojok kanan atas.
+4. Masukkan: `Bearer <token>` (contoh: `Bearer eyJhbGciOi...`).
+5. Klik Authorize → semua endpoint yang butuh login sekarang bisa diakses.
